@@ -1,0 +1,6 @@
+Controls:
+
+- Press T to go into translation mode: click and drag to translate.
+- Press R to go into rotation mode as well as to switch rotational axis : click and drag to rotate.
+- Press S to go into scale mode: click and drag to scale.
+- Press L to reset model as well as load second model.

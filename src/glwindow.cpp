@@ -310,6 +310,8 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
             GLuint MVP_MATRIX = glGetUniformLocation(shader, "MVP");
             glUniformMatrix4fv(MVP_MATRIX, 1, GL_FALSE, &MVP[0][0]);
             //************************************
+
+            
         }
     }
 
