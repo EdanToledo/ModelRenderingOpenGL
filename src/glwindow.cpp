@@ -27,7 +27,7 @@ char axis = 'x';
 
 bool translating = false;
 bool scaling = false;
-float currentScale = 1;
+
 
 const float winsizex = 1024;
 const float winsizey = 1024;
