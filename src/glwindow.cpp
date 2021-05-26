@@ -4,14 +4,37 @@
 #include "SDL.h"
 #include <GL/glew.h>
 
+#include <glm/vec3.hpp>                  // glm::vec3
+#include <glm/vec4.hpp>                  // glm::vec4
+#include <glm/mat4x4.hpp>                // glm::mat4
+#include <glm/ext/matrix_transform.hpp>  // glm::translate, glm::rotate, glm::scale
+#include <glm/ext/matrix_clip_space.hpp> // glm::perspective
+#include <glm/ext/scalar_constants.hpp>  // glm::pi
+
 #include "glwindow.h"
 #include "geometry.h"
 
 using namespace std;
 
-const char* glGetErrorString(GLenum error)
+glm::mat4 Model;
+glm::mat4 View;
+glm::mat4 Projection;
+glm::mat4 MVP;
+
+bool dragging = false;
+bool rotating = false;
+char axis = 'x';
+
+bool translating = false;
+bool scaling = false;
+float currentScale = 1;
+
+const float winsizex = 1024;
+const float winsizey = 1024;
+
+const char *glGetErrorString(GLenum error)
 {
-    switch(error)
+    switch (error)
     {
     case GL_NO_ERROR:
         return "GL_NO_ERROR";
@@ -30,19 +53,19 @@ const char* glGetErrorString(GLenum error)
     }
 }
 
-void glPrintError(const char* label="Unlabelled Error Checkpoint", bool alwaysPrint=false)
+void glPrintError(const char *label = "Unlabelled Error Checkpoint", bool alwaysPrint = false)
 {
     GLenum error = glGetError();
-    if(alwaysPrint || (error != GL_NO_ERROR))
+    if (alwaysPrint || (error != GL_NO_ERROR))
     {
         printf("%s: OpenGL error flag is %s\n", label, glGetErrorString(error));
     }
 }
 
-GLuint loadShader(const char* shaderFilename, GLenum shaderType)
+GLuint loadShader(const char *shaderFilename, GLenum shaderType)
 {
-    FILE* shaderFile = fopen(shaderFilename, "r");
-    if(!shaderFile)
+    FILE *shaderFile = fopen(shaderFilename, "r");
+    if (!shaderFile)
     {
         return 0;
     }
@@ -51,13 +74,13 @@ GLuint loadShader(const char* shaderFilename, GLenum shaderType)
     long shaderSize = ftell(shaderFile);
     fseek(shaderFile, 0, SEEK_SET);
 
-    char* shaderText = new char[shaderSize+1];
+    char *shaderText = new char[shaderSize + 1];
     size_t readCount = fread(shaderText, 1, shaderSize, shaderFile);
     shaderText[readCount] = '\0';
     fclose(shaderFile);
 
     GLuint shader = glCreateShader(shaderType);
-    glShaderSource(shader, 1, (const char**)&shaderText, NULL);
+    glShaderSource(shader, 1, (const char **)&shaderText, NULL);
     glCompileShader(shader);
 
     delete[] shaderText;
@@ -65,8 +88,8 @@ GLuint loadShader(const char* shaderFilename, GLenum shaderType)
     return shader;
 }
 
-GLuint loadShaderProgram(const char* vertShaderFilename,
-                       const char* fragShaderFilename)
+GLuint loadShaderProgram(const char *vertShaderFilename,
+                         const char *fragShaderFilename)
 {
     GLuint vertShader = loadShader(vertShaderFilename, GL_VERTEX_SHADER);
     GLuint fragShader = loadShader(fragShaderFilename, GL_FRAGMENT_SHADER);
@@ -80,7 +103,7 @@ GLuint loadShaderProgram(const char* vertShaderFilename,
 
     GLint linkStatus;
     glGetProgramiv(program, GL_LINK_STATUS, &linkStatus);
-    if(linkStatus != GL_TRUE)
+    if (linkStatus != GL_TRUE)
     {
         GLsizei logLength = 0;
         GLchar message[1024];
@@ -96,7 +119,8 @@ OpenGLWindow::OpenGLWindow()
 {
 }
 
-GeometryData loadOBJFile(const string filename){
+GeometryData loadOBJFile(const string filename)
+{
     GeometryData objData;
 
     objData.loadFromOBJFile(filename);
@@ -114,8 +138,8 @@ void OpenGLWindow::initGL()
 
     sdlWin = SDL_CreateWindow("OpenGL Prac 1",
                               SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                              1024, 1024, SDL_WINDOW_OPENGL);
-    if(!sdlWin)
+                              winsizex, winsizey, SDL_WINDOW_OPENGL);
+    if (!sdlWin)
     {
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Error", "Unable to create window", 0);
     }
@@ -126,9 +150,9 @@ void OpenGLWindow::initGL()
     glewExperimental = true;
     GLenum glewInitResult = glewInit();
     glGetError(); // Consume the error erroneously set by glewInit()
-    if(glewInitResult != GLEW_OK)
+    if (glewInitResult != GLEW_OK)
     {
-        const GLubyte* errorString = glewGetErrorString(glewInitResult);
+        const GLubyte *errorString = glewGetErrorString(glewInitResult);
         cout << "Unable to initialize glew: " << errorString;
     }
 
@@ -145,7 +169,7 @@ void OpenGLWindow::initGL()
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
-    glClearColor(0,0,0,1);
+    glClearColor(0, 0, 0, 1);
 
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
@@ -157,51 +181,149 @@ void OpenGLWindow::initGL()
     glUseProgram(shader);
 
     int colorLoc = glGetUniformLocation(shader, "objectColor");
-    glUniform3f(colorLoc, 1.0f, 1.0f, 1.0f);
+    glUniform3f(colorLoc, 0.8f, 0.0f, 0.0f);
 
     // Load the model that we want to use and buffer the vertex attributes
-    GeometryData geometry = loadOBJFile("objects/tri.obj");
+    GeometryData geo = loadOBJFile("objects/doggo.obj");
+    //GeometryData geo;
+    //geo.loadFromOBJFile("objects/teapot.obj");
 
-    
-    
     int vertexLoc = glGetAttribLocation(shader, "position");
-    // float vertices[9] = { 0.0f,  0.5f, 0.0f,
-    //                      -0.5f, -0.5f, 0.0f,
-    //                       0.5f, -0.5f, 0.0f };
+    
+    
+    // The projection matrix 
+    Projection = glm::perspective(glm::radians(45.0f), winsizex / winsizey, 0.1f, 100.0f);
+    
+    View       = glm::lookAt(
+                                glm::vec3(0,0,3), //camera position
+                                glm::vec3(0,0,0), //camera target
+                                glm::vec3(0,1,0) //camera upwards direction
+                           );
 
+    Model = glm::mat4(1.0f);
+
+    MVP = Projection * View * Model;
 
     glGenBuffers(1, &vertexBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-    glBufferData(GL_ARRAY_BUFFER, geometry.vertexCount()*3*sizeof(float), geometry.vertexData(), GL_STATIC_DRAW);
-    glVertexAttribPointer(vertexLoc, 3, GL_FLOAT, GL_FALSE, 0,0);
+    glBufferData(GL_ARRAY_BUFFER, geo.vertexCount() * 3 * sizeof(float), geo.vertexData(), GL_STATIC_DRAW);
+    glVertexAttribPointer(vertexLoc, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glEnableVertexAttribArray(vertexLoc);
+    
+    //Get ModelViewProjection matrix uniform variable
+    GLuint MVP_MATRIX = glGetUniformLocation(shader, "MVP");
+    glUniformMatrix4fv(MVP_MATRIX, 1, GL_FALSE, &MVP[0][0]);
 
     glPrintError("Setup complete", true);
+}
+
+glm::mat4 translate(const glm::mat4 &model,float x,float y,float z){
+    return glm::translate(model,glm::vec3(x,y,z));
+}
+glm::mat4 rotate(const glm::mat4 &model,const float radians_to_rotate,float xaxis,float yaxis,float zaxis){
+    return glm::rotate(model,glm::radians(radians_to_rotate),glm::vec3(xaxis,yaxis,zaxis));
+}
+glm::mat4 scale(const glm::mat4 & model,float size){
+    return glm::scale(model,glm::vec3(size));
 }
 
 void OpenGLWindow::render()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glDrawArrays(GL_TRIANGLES, 0, 5613);
 
     // Swap the front and back buffers on the window, effectively putting what we just "drew"
     // onto the screen (whereas previously it only existed in memory)
     SDL_GL_SwapWindow(sdlWin);
+
+    
 }
 
 // The program will exit if this function returns false
 bool OpenGLWindow::handleEvent(SDL_Event e)
 {
+   
     // A list of keycode constants is available here: https://wiki.libsdl.org/SDL_Keycode
     // Note that SDL provides both Scancodes (which correspond to physical positions on the keyboard)
     // and Keycodes (which correspond to symbols on the keyboard, and might differ across layouts)
-    if(e.type == SDL_KEYDOWN)
+    if (e.type == SDL_KEYDOWN)
     {
-        if(e.key.keysym.sym == SDLK_ESCAPE)
+        if (e.key.keysym.sym == SDLK_r)
+        {
+            rotating=true;
+            if (axis=='x')
+            {
+               axis='y';
+            }else if (axis=='y')
+            {
+                axis='z';
+            }else{
+                axis='x';}
+            
+        
+            translating=false;
+            scaling=false;
+        }
+        if (e.key.keysym.sym == SDLK_t)
+        {
+            translating=true;
+            rotating=false;
+            scaling=false;
+        }
+        if (e.key.keysym.sym == SDLK_s)
+        {
+            scaling=true;
+            rotating=false;
+            translating=false;
+            
+        }
+
+        if (e.key.keysym.sym == SDLK_ESCAPE)
         {
             return false;
         }
+    }
+    if(e.type ==SDL_MOUSEBUTTONDOWN){
+       dragging = true;
+      
+    }
+     if(e.type ==SDL_MOUSEBUTTONUP){
+       dragging = false;
+      
+    }
+    if (e.type == SDL_MOUSEMOTION && dragging == true){
+        int x,y;
+        SDL_GetMouseState(&x,&y);
+        
+        float xdiff = x - e.motion.x;
+        float ydiff = e.motion.y - y;
+
+        
+        if (translating)
+        {
+             Model = translate(Model,xdiff/1000,ydiff/1000,0.0f);
+            
+        }
+        if (rotating)
+        {   
+          
+               Model = rotate(Model,axis=='y'?xdiff:axis=='x'?ydiff:xdiff+ydiff,axis=='x'?1:0,axis=='y'?1:0,axis=='z'?1:0);
+        
+        }
+
+        if (scaling)
+        {
+            
+            Model = scale(Model,1+((xdiff+ydiff)/100));
+        }
+        
+        
+        
+       
+    MVP = Projection * View * Model;
+    GLuint MVP_MATRIX = glGetUniformLocation(shader, "MVP");
+    glUniformMatrix4fv(MVP_MATRIX, 1, GL_FALSE, &MVP[0][0]);
     }
     return true;
 }
