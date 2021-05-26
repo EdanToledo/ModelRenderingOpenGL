@@ -17,9 +17,11 @@
 using namespace std;
 
 glm::mat4 Model;
+glm::mat4 Model2;
 glm::mat4 View;
 glm::mat4 Projection;
 glm::mat4 MVP;
+glm::mat4 MVP2;
 
 bool dragging = false;
 bool rotating = false;
@@ -27,7 +29,6 @@ char axis = 'x';
 
 bool translating = false;
 bool scaling = false;
-
 
 const float winsizex = 1024;
 const float winsizey = 1024;
@@ -181,24 +182,23 @@ void OpenGLWindow::initGL()
     glUseProgram(shader);
 
     int colorLoc = glGetUniformLocation(shader, "objectColor");
-    glUniform3f(colorLoc, 0.8f, 0.0f, 0.0f);
+    glUniform3f(colorLoc, 0.5f, 1.0f, 1.0f);
 
     // Load the model that we want to use and buffer the vertex attributes
-    GeometryData geo = loadOBJFile("objects/doggo.obj");
+    GeometryData geo = loadOBJFile("objects/teapot.obj");
     //GeometryData geo;
     //geo.loadFromOBJFile("objects/teapot.obj");
 
     int vertexLoc = glGetAttribLocation(shader, "position");
-    
-    
-    // The projection matrix 
+
+    // The projection matrix
     Projection = glm::perspective(glm::radians(45.0f), winsizex / winsizey, 0.1f, 100.0f);
-    
-    View       = glm::lookAt(
-                                glm::vec3(0,0,3), //camera position
-                                glm::vec3(0,0,0), //camera target
-                                glm::vec3(0,1,0) //camera upwards direction
-                           );
+
+    View = glm::lookAt(
+        glm::vec3(0, 0, 3), //camera position
+        glm::vec3(0, 0, 0), //camera target
+        glm::vec3(0, 1, 0)  //camera upwards direction
+    );
 
     Model = glm::mat4(1.0f);
 
@@ -209,7 +209,7 @@ void OpenGLWindow::initGL()
     glBufferData(GL_ARRAY_BUFFER, geo.vertexCount() * 3 * sizeof(float), geo.vertexData(), GL_STATIC_DRAW);
     glVertexAttribPointer(vertexLoc, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glEnableVertexAttribArray(vertexLoc);
-    
+
     //Get ModelViewProjection matrix uniform variable
     GLuint MVP_MATRIX = glGetUniformLocation(shader, "MVP");
     glUniformMatrix4fv(MVP_MATRIX, 1, GL_FALSE, &MVP[0][0]);
@@ -217,14 +217,17 @@ void OpenGLWindow::initGL()
     glPrintError("Setup complete", true);
 }
 
-glm::mat4 translate(const glm::mat4 &model,float x,float y,float z){
-    return glm::translate(model,glm::vec3(x,y,z));
+glm::mat4 translate(const glm::mat4 &model, float x, float y, float z)
+{
+    return glm::translate(model, glm::vec3(x, y, z));
 }
-glm::mat4 rotate(const glm::mat4 &model,const float radians_to_rotate,float xaxis,float yaxis,float zaxis){
-    return glm::rotate(model,glm::radians(radians_to_rotate),glm::vec3(xaxis,yaxis,zaxis));
+glm::mat4 rotate(const glm::mat4 &model, const float radians_to_rotate, float xaxis, float yaxis, float zaxis)
+{
+    return glm::rotate(model, glm::radians(radians_to_rotate), glm::vec3(xaxis, yaxis, zaxis));
 }
-glm::mat4 scale(const glm::mat4 & model,float size){
-    return glm::scale(model,glm::vec3(size));
+glm::mat4 scale(const glm::mat4 &model, float size)
+{
+    return glm::scale(model, glm::vec3(size));
 }
 
 void OpenGLWindow::render()
@@ -236,14 +239,12 @@ void OpenGLWindow::render()
     // Swap the front and back buffers on the window, effectively putting what we just "drew"
     // onto the screen (whereas previously it only existed in memory)
     SDL_GL_SwapWindow(sdlWin);
-
-    
 }
 
 // The program will exit if this function returns false
 bool OpenGLWindow::handleEvent(SDL_Event e)
 {
-   
+
     // A list of keycode constants is available here: https://wiki.libsdl.org/SDL_Keycode
     // Note that SDL provides both Scancodes (which correspond to physical positions on the keyboard)
     // and Keycodes (which correspond to symbols on the keyboard, and might differ across layouts)
@@ -251,79 +252,104 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
     {
         if (e.key.keysym.sym == SDLK_r)
         {
-            rotating=true;
-            if (axis=='x')
+            rotating = true;
+            if (axis == 'x')
             {
-               axis='y';
-            }else if (axis=='y')
+                axis = 'y';
+            }
+            else if (axis == 'y')
             {
-                axis='z';
-            }else{
-                axis='x';}
-            
-        
-            translating=false;
-            scaling=false;
+                axis = 'z';
+            }
+            else
+            {
+                axis = 'x';
+            }
+
+            translating = false;
+            scaling = false;
         }
         if (e.key.keysym.sym == SDLK_t)
         {
-            translating=true;
-            rotating=false;
-            scaling=false;
+            translating = true;
+            rotating = false;
+            scaling = false;
         }
         if (e.key.keysym.sym == SDLK_s)
         {
-            scaling=true;
-            rotating=false;
-            translating=false;
-            
+            scaling = true;
+            rotating = false;
+            translating = false;
         }
 
         if (e.key.keysym.sym == SDLK_ESCAPE)
         {
             return false;
         }
+
+        if (e.key.keysym.sym == SDLK_l)
+        {
+
+            int vertexLoc = glGetAttribLocation(shader, "position");
+
+            //Starting positions
+            //******************************************
+            Projection = glm::perspective(glm::radians(45.0f), winsizex / winsizey, 0.1f, 100.0f);
+
+            View = glm::lookAt(
+                glm::vec3(0, 0, 3), //camera position
+                glm::vec3(0, 0, 0), //camera target
+                glm::vec3(0, 1, 0)  //camera upwards direction
+            );
+
+            Model = glm::mat4(1.0f);
+
+            MVP = Projection * View * Model;
+
+            //Get ModelViewProjection matrix uniform variable
+            GLuint MVP_MATRIX = glGetUniformLocation(shader, "MVP");
+            glUniformMatrix4fv(MVP_MATRIX, 1, GL_FALSE, &MVP[0][0]);
+            //************************************
+        }
     }
-    if(e.type ==SDL_MOUSEBUTTONDOWN){
-       dragging = true;
-      
+
+    if (e.type == SDL_MOUSEBUTTONDOWN)
+    {
+        dragging = true;
     }
-     if(e.type ==SDL_MOUSEBUTTONUP){
-       dragging = false;
-      
+    if (e.type == SDL_MOUSEBUTTONUP)
+    {
+        dragging = false;
     }
-    if (e.type == SDL_MOUSEMOTION && dragging == true){
-        int x,y;
-        SDL_GetMouseState(&x,&y);
-        
+    if (e.type == SDL_MOUSEMOTION && dragging == true)
+    {
+        int x, y;
+        SDL_GetMouseState(&x, &y);
+
         float xdiff = x - e.motion.x;
         float ydiff = e.motion.y - y;
 
-        
         if (translating)
         {
-             Model = translate(Model,xdiff/1000,ydiff/1000,0.0f);
-            
+            Model = translate(Model, xdiff / 1000, ydiff / 1000, 0.0f);
         }
         if (rotating)
-        {   
-          
-               Model = rotate(Model,axis=='y'?xdiff:axis=='x'?ydiff:xdiff+ydiff,axis=='x'?1:0,axis=='y'?1:0,axis=='z'?1:0);
-        
+        {
+
+            Model = rotate(Model, axis == 'y' ? xdiff : axis == 'x' ? ydiff
+                                                                    : xdiff + ydiff,
+                           axis == 'x' ? 1 : 0, axis == 'y' ? 1 : 0, axis == 'z' ? 1 : 0);
         }
 
         if (scaling)
         {
-            
-            Model = scale(Model,1+((xdiff+ydiff)/100));
+
+            Model = scale(Model, 1 + ((xdiff + ydiff) / 100));
         }
-        
-        
-        
-       
-    MVP = Projection * View * Model;
-    GLuint MVP_MATRIX = glGetUniformLocation(shader, "MVP");
-    glUniformMatrix4fv(MVP_MATRIX, 1, GL_FALSE, &MVP[0][0]);
+
+        MVP = Projection * View * Model;
+        GLuint MVP_MATRIX = glGetUniformLocation(shader, "MVP");
+        glUniformMatrix4fv(MVP_MATRIX, 1, GL_FALSE, &MVP[0][0]);
     }
     return true;
 }
