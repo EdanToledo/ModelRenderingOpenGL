@@ -5,6 +5,7 @@ Controls:
 - Press S to go into scale mode: click and drag to scale.
 - Press L to reset model as well as load second model.
 - Press K to remove duplicate model.
+- Press C to turn on and off rapid changing colour mode.
 
 Compilation on linux:
 1. Make sure the objects folder is inside the build folder
