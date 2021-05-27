@@ -21,7 +21,6 @@ glm::mat4 View;
 glm::mat4 Projection;
 glm::mat4 MVP;
 
-
 bool dragging = false;
 bool rotating = false;
 char axis = 'x';
@@ -29,6 +28,7 @@ char axis = 'x';
 bool translating = false;
 bool scaling = false;
 bool duplicate = false;
+bool colour = false;
 const float winsizex = 1024;
 const float winsizey = 1024;
 float obj_x_size = 0;
@@ -183,14 +183,12 @@ void OpenGLWindow::initGL()
     glUseProgram(shader);
 
     int colorLoc = glGetUniformLocation(shader, "objectColor");
-    glUniform3f(colorLoc, 0.5f, 1.0f, 1.0f);
+    glUniform3f(colorLoc, 1.0f, 1.0f, 1.0f);
 
     // Load the model that we want to use and buffer the vertex attributes
-    GeometryData geo = loadOBJFile("objects/doggo.obj");
+    GeometryData geo = loadOBJFile("objects/teapot.obj");
     obj_vertices_count = geo.vertexCount();
-    obj_x_size = abs(geo.minx)+abs(geo.maxx);
-    //GeometryData geo;
-    //geo.loadFromOBJFile("objects/teapot.obj");
+    obj_x_size = abs(geo.minx) + abs(geo.maxx);
 
     int vertexLoc = glGetAttribLocation(shader, "position");
 
@@ -202,9 +200,10 @@ void OpenGLWindow::initGL()
         glm::vec3(0, 0, 0), //camera target
         glm::vec3(0, 1, 0)  //camera upwards direction
     );
-
+    //The model matrix
     Model = glm::mat4(1.0f);
 
+    //Model_View_Projection matrix for transformation
     MVP = Projection * View * Model;
 
     glGenBuffers(1, &vertexBuffer);
@@ -219,7 +218,7 @@ void OpenGLWindow::initGL()
 
     glPrintError("Setup complete", true);
 }
-
+//Following methods are essentially just wrappers so i dont have to type glm every time
 glm::mat4 translate(const glm::mat4 &model, float x, float y, float z)
 {
     return glm::translate(model, glm::vec3(x, y, z));
@@ -235,20 +234,29 @@ glm::mat4 scale(const glm::mat4 &model, float size)
 
 void OpenGLWindow::render()
 {
+    if (colour)
+    {
+        float red = sin(SDL_GetTicks());
+        float green = cos(SDL_GetTicks());
+        float blue = tan(SDL_GetTicks());
+
+        int colorLoc = glGetUniformLocation(shader, "objectColor");
+        glUniform3f(colorLoc, red, green, blue);
+    }
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glUniformMatrix4fv(glGetUniformLocation(shader, "MVP"),1, GL_FALSE, &MVP[0][0]);
+    glUniformMatrix4fv(glGetUniformLocation(shader, "MVP"), 1, GL_FALSE, &MVP[0][0]);
 
     glDrawArrays(GL_TRIANGLES, 0, obj_vertices_count);
-    
+
+    //draws duplicate if it should be on screen
     if (duplicate)
     {
-        glUniformMatrix4fv(glGetUniformLocation(shader, "MVP"),1, GL_FALSE, &(Projection * View * translate(Model,obj_x_size,0,0))[0][0]);
+        glUniformMatrix4fv(glGetUniformLocation(shader, "MVP"), 1, GL_FALSE, &(Projection * View * translate(Model, obj_x_size, 0, 0))[0][0]);
 
         glDrawArrays(GL_TRIANGLES, 0, obj_vertices_count);
     }
-    
-   
 
     // Swap the front and back buffers on the window, effectively putting what we just "drew"
     // onto the screen (whereas previously it only existed in memory)
@@ -300,12 +308,23 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
         {
             return false;
         }
-        
+
         if (e.key.keysym.sym == SDLK_k)
         {
             duplicate = false;
         }
-        
+
+        if (e.key.keysym.sym == SDLK_c)
+        {
+            if (colour)
+            {
+                colour = false;
+            }
+            else
+            {
+                colour = true;
+            }
+        }
 
         if (e.key.keysym.sym == SDLK_l)
         {
@@ -331,8 +350,7 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
             glUniformMatrix4fv(MVP_MATRIX, 1, GL_FALSE, &MVP[0][0]);
             //************************************
 
-            duplicate=true;
-            
+            duplicate = true;
         }
     }
 
