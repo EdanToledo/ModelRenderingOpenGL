@@ -17,11 +17,10 @@
 using namespace std;
 
 glm::mat4 Model;
-glm::mat4 Model2;
 glm::mat4 View;
 glm::mat4 Projection;
 glm::mat4 MVP;
-glm::mat4 MVP2;
+
 
 bool dragging = false;
 bool rotating = false;
@@ -29,7 +28,7 @@ char axis = 'x';
 
 bool translating = false;
 bool scaling = false;
-
+bool duplicate = false;
 const float winsizex = 1024;
 const float winsizey = 1024;
 
@@ -234,7 +233,18 @@ void OpenGLWindow::render()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    glUniformMatrix4fv(glGetUniformLocation(shader, "MVP"),1, GL_FALSE, &MVP[0][0]);
+
     glDrawArrays(GL_TRIANGLES, 0, 5613);
+    
+    if (duplicate)
+    {
+        glUniformMatrix4fv(glGetUniformLocation(shader, "MVP"),1, GL_FALSE, &(Projection * View * translate(Model,1,2,0))[0][0]);
+
+        glDrawArrays(GL_TRIANGLES, 0, 5613);
+    }
+    
+   
 
     // Swap the front and back buffers on the window, effectively putting what we just "drew"
     // onto the screen (whereas previously it only existed in memory)
@@ -286,6 +296,12 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
         {
             return false;
         }
+        
+        if (e.key.keysym.sym == SDLK_k)
+        {
+            duplicate = false;
+        }
+        
 
         if (e.key.keysym.sym == SDLK_l)
         {
@@ -311,6 +327,7 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
             glUniformMatrix4fv(MVP_MATRIX, 1, GL_FALSE, &MVP[0][0]);
             //************************************
 
+            duplicate=true;
             
         }
     }
