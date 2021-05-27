@@ -31,6 +31,8 @@ bool scaling = false;
 bool duplicate = false;
 const float winsizex = 1024;
 const float winsizey = 1024;
+float obj_x_size = 0;
+float obj_vertices_count = 0;
 
 const char *glGetErrorString(GLenum error)
 {
@@ -184,7 +186,9 @@ void OpenGLWindow::initGL()
     glUniform3f(colorLoc, 0.5f, 1.0f, 1.0f);
 
     // Load the model that we want to use and buffer the vertex attributes
-    GeometryData geo = loadOBJFile("objects/teapot.obj");
+    GeometryData geo = loadOBJFile("objects/doggo.obj");
+    obj_vertices_count = geo.vertexCount();
+    obj_x_size = abs(geo.minx)+abs(geo.maxx);
     //GeometryData geo;
     //geo.loadFromOBJFile("objects/teapot.obj");
 
@@ -235,13 +239,13 @@ void OpenGLWindow::render()
 
     glUniformMatrix4fv(glGetUniformLocation(shader, "MVP"),1, GL_FALSE, &MVP[0][0]);
 
-    glDrawArrays(GL_TRIANGLES, 0, 5613);
+    glDrawArrays(GL_TRIANGLES, 0, obj_vertices_count);
     
     if (duplicate)
     {
-        glUniformMatrix4fv(glGetUniformLocation(shader, "MVP"),1, GL_FALSE, &(Projection * View * translate(Model,1,2,0))[0][0]);
+        glUniformMatrix4fv(glGetUniformLocation(shader, "MVP"),1, GL_FALSE, &(Projection * View * translate(Model,obj_x_size,0,0))[0][0]);
 
-        glDrawArrays(GL_TRIANGLES, 0, 5613);
+        glDrawArrays(GL_TRIANGLES, 0, obj_vertices_count);
     }
     
    

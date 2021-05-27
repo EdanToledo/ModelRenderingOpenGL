@@ -108,6 +108,31 @@ void GeometryData::loadFromOBJFile(string filename)
             tempGeom.vertices.push_back(y);
             tempGeom.vertices.push_back(z);
             currentDataType = COMMENT;
+            if (x<minx)
+            {
+                minx = x;
+            }
+            if (y<miny)
+            {
+                miny = y;
+            }
+            if (z<minz)
+            {
+                minz = z;
+            }
+            if (x>maxx)
+            {
+                maxx = x;
+            }
+            if (y>maxy)
+            {
+                maxy = y;
+            }
+            if (z>maxz)
+            {
+                maxz = z;
+            }
+            
         } break;
 
         case TEXTURECOORD:

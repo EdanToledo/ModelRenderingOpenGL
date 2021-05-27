@@ -18,11 +18,18 @@ public:
 
     int vertexCount();
 
-    void* vertexData();
-    void* textureCoordData();
-    void* normalData();
-    void* tangentData();
-    void* bitangentData();
+    void *vertexData();
+    void *textureCoordData();
+    void *normalData();
+    void *tangentData();
+    void *bitangentData();
+
+    float minx = INT16_MAX;
+    float miny = INT16_MAX;
+    float minz = INT16_MAX;
+    float maxx = INT16_MIN;
+    float maxy = INT16_MIN;
+    float maxz = INT16_MIN;
 
 private:
     std::vector<float> vertices;
