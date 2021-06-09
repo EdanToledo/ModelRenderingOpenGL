@@ -20,8 +20,11 @@ glm::mat4 Model;
 glm::mat4 View;
 glm::mat4 Projection;
 
-glm::vec3 lightSource = glm::vec3(4, 4, 4);
-glm::vec3 lightColor = glm::vec3(1, 1, 1);
+glm::vec3 cameraPosition = glm::vec3(0, 0, 3);
+glm::vec3 lightSource1 = glm::vec3(4, 4, 1);
+glm::vec3 lightColor1 = glm::vec3(0, 2, 2);
+glm::vec3 lightSource2 = glm::vec3(-4, 4, 1);
+glm::vec3 lightColor2 = glm::vec3(2, 0, 0);
 bool dragging = false;
 bool rotating = false;
 char axis = 'x';
@@ -227,11 +230,19 @@ void OpenGLWindow::initGL()
     glEnableVertexAttribArray(1);
 
     //TEMP CODE
-    GLuint lightSourceVector = glGetUniformLocation(shader, "lightSource");
-    glUniform3fv(lightSourceVector, 1, &lightSource[0]);
 
-    GLuint lightSourceColor = glGetUniformLocation(shader, "lightColor");
-    glUniform3fv(lightSourceColor, 1, &lightColor[0]);
+    GLuint lightSourceVector1 = glGetUniformLocation(shader, "lightSource1");
+    glUniform3fv(lightSourceVector1, 1, &lightSource1[0]);
+    GLuint lightSourceColor1 = glGetUniformLocation(shader, "lightColor1");
+    glUniform3fv(lightSourceColor1, 1, &lightColor1[0]);
+
+    GLuint lightSourceVector2 = glGetUniformLocation(shader, "lightSource2");
+    glUniform3fv(lightSourceVector2, 1, &lightSource2[0]);
+    GLuint lightSourceColor2 = glGetUniformLocation(shader, "lightColor2");
+    glUniform3fv(lightSourceColor2, 1, &lightColor2[0]);
+
+    GLuint viewPosID = glGetUniformLocation(shader, "viewPos");
+    glUniform3fv(viewPosID, 1, &cameraPosition[0]);
     //********************
     //Get ModelViewProjection matrix uniform variable
     GLuint Model_Matrix = glGetUniformLocation(shader, "Model");
@@ -261,10 +272,15 @@ glm::mat4 scale(const glm::mat4 &model, float size)
 
 void OpenGLWindow::render()
 {
-    GLuint lightSourceVector = glGetUniformLocation(shader, "lightSource");
-    glUniform3fv(lightSourceVector, 1, &lightSource[0]);
-    GLuint lightSourceColor = glGetUniformLocation(shader, "lightColor");
-    glUniform3fv(lightSourceColor, 1, &lightColor[0]);
+    GLuint lightSourceVector1 = glGetUniformLocation(shader, "lightSource1");
+    glUniform3fv(lightSourceVector1, 1, &lightSource1[0]);
+    GLuint lightSourceColor1 = glGetUniformLocation(shader, "lightColor1");
+    glUniform3fv(lightSourceColor1, 1, &lightColor1[0]);
+
+    GLuint lightSourceVector2 = glGetUniformLocation(shader, "lightSource2");
+    glUniform3fv(lightSourceVector2, 1, &lightSource2[0]);
+    GLuint lightSourceColor2 = glGetUniformLocation(shader, "lightColor2");
+    glUniform3fv(lightSourceColor2, 1, &lightColor2[0]);
 
     if (colour)
     {
@@ -297,7 +313,7 @@ void OpenGLWindow::render()
         glUniformMatrix4fv(View_Matrix, 1, GL_FALSE, &View[0][0]);
         GLuint Projection_Matrix = glGetUniformLocation(shader, "Projection");
         glUniformMatrix4fv(Projection_Matrix, 1, GL_FALSE, &Projection[0][0]);
-        
+
         glDrawArrays(GL_TRIANGLES, 0, obj_vertices_count);
     }
 
@@ -354,7 +370,7 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
 
         if (e.key.keysym.sym == SDLK_g)
         {
-            lightColor += glm::vec3(0.5, 0.5, 0.5);
+            lightColor1 += glm::vec3(0.5, 0.5, 0.5);
         }
 
         if (e.key.keysym.sym == SDLK_k)
@@ -374,20 +390,74 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
             }
         }
         if (e.key.keysym.sym == SDLK_UP)
-        {
-            lightSource = lightSource + glm::vec3(0, 0.5, 0);
+        {   
+            glm::vec3 cameraDirection = glm::normalize(cameraPosition - glm::vec3(0,0,0));
+            glm::vec3 cameraRight = glm::normalize(glm::cross(glm::vec3(0,1,0), cameraDirection));
+            glm::vec4 newpos = glm::rotate(glm::mat4(1),glm::radians(-10.0f),cameraRight)* glm::vec4((cameraPosition - glm::vec3(0,0,0)) + glm::vec3(0,0,0),1);
+            cameraPosition.x = newpos.x;
+            cameraPosition.y = newpos.y;
+            cameraPosition.z = newpos.z;
+            View = glm::lookAt(cameraPosition, glm::vec3(0,0,0), glm::vec3(0,1,0));
+
+
         }
         if (e.key.keysym.sym == SDLK_DOWN)
         {
-            lightSource = lightSource + glm::vec3(0, -0.5, 0);
+            glm::vec3 cameraDirection = glm::normalize(cameraPosition - glm::vec3(0,0,0));
+            glm::vec3 cameraRight = glm::normalize(glm::cross(glm::vec3(0,1,0), cameraDirection));
+            glm::vec4 newpos = glm::rotate(glm::mat4(1),glm::radians(10.0f),cameraRight)* glm::vec4((cameraPosition - glm::vec3(0,0,0)) + glm::vec3(0,0,0),1);
+            cameraPosition.x = newpos.x;
+            cameraPosition.y = newpos.y;
+            cameraPosition.z = newpos.z;
+            View = glm::lookAt(cameraPosition, glm::vec3(0,0,0), glm::vec3(0,1,0));
         }
         if (e.key.keysym.sym == SDLK_LEFT)
         {
-            lightSource = lightSource + glm::vec3(-1, 0, 0);
+            glm::vec4 newpos = rotate(glm::mat4(1),-10,0,1,0) * glm::vec4((cameraPosition - glm::vec3(0,0,0)) + glm::vec3(0,0,0),1);
+            cameraPosition.x = newpos.x;
+            cameraPosition.y = newpos.y;
+            cameraPosition.z = newpos.z;
+            View = glm::lookAt(cameraPosition, glm::vec3(0,0,0), glm::vec3(0,1,0));
         }
         if (e.key.keysym.sym == SDLK_RIGHT)
         {
-            lightSource = lightSource + glm::vec3(1, 0, 0);
+            glm::vec4 newpos = rotate(glm::mat4(1),10,0,1,0) * glm::vec4((cameraPosition - glm::vec3(0,0,0)) + glm::vec3(0,0,0),1);
+            cameraPosition.x = newpos.x;
+            cameraPosition.y = newpos.y;
+            cameraPosition.z = newpos.z;
+            View = glm::lookAt(cameraPosition, glm::vec3(0,0,0), glm::vec3(0,1,0));
+        }
+        if (e.key.keysym.sym == SDLK_z)
+        {
+            lightSource1 = lightSource1 + glm::vec3(0, 0.5, 0);
+        }
+        if (e.key.keysym.sym == SDLK_x)
+        {
+            lightSource1 = lightSource1 + glm::vec3(0, -0.5, 0);
+        }
+        if (e.key.keysym.sym == SDLK_v)
+        {
+            lightSource1 = lightSource1 + glm::vec3(-1, 0, 0);
+        }
+        if (e.key.keysym.sym == SDLK_b)
+        {
+            lightSource1 = lightSource1 + glm::vec3(1, 0, 0);
+        }
+        if (e.key.keysym.sym == SDLK_u)
+        {
+            lightSource1 = lightSource1 + glm::vec3(0, 0.5, 0);
+        }
+        if (e.key.keysym.sym == SDLK_i)
+        {
+            lightSource1 = lightSource1 + glm::vec3(0, -0.5, 0);
+        }
+        if (e.key.keysym.sym == SDLK_o)
+        {
+            lightSource1 = lightSource1 + glm::vec3(-1, 0, 0);
+        }
+        if (e.key.keysym.sym == SDLK_p)
+        {
+            lightSource1 = lightSource1 + glm::vec3(1, 0, 0);
         }
         if (e.key.keysym.sym == SDLK_l)
         {
@@ -405,6 +475,10 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
             );
 
             Model = glm::mat4(1.0f);
+            int colorLoc = glGetUniformLocation(shader, "objectColor");
+            glUniform3f(colorLoc, 1.0f, 1.0f, 1.0f);
+            lightSource1 = glm::vec3(4, 4, 1);
+            lightSource2 = glm::vec3(-4, 4, 1);
 
             duplicate = true;
         }
@@ -445,8 +519,6 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
         }
     }
 
-    
-    
     return true;
 }
 
