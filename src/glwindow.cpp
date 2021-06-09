@@ -19,8 +19,9 @@ using namespace std;
 glm::mat4 Model;
 glm::mat4 View;
 glm::mat4 Projection;
-glm::mat4 MVP;
 
+glm::vec3 lightSource = glm::vec3(4, 4, 4);
+glm::vec3 lightColor = glm::vec3(1, 1, 1);
 bool dragging = false;
 bool rotating = false;
 char axis = 'x';
@@ -186,11 +187,9 @@ void OpenGLWindow::initGL()
     glUniform3f(colorLoc, 1.0f, 1.0f, 1.0f);
 
     // Load the model that we want to use and buffer the vertex attributes
-    GeometryData geo = loadOBJFile("objects/teapot.obj");
+    GeometryData geo = loadOBJFile("objects/suzanne.obj");
     obj_vertices_count = geo.vertexCount();
     obj_x_size = abs(geo.minx) + abs(geo.maxx);
-
-    int vertexLoc = glGetAttribLocation(shader, "position");
 
     // The projection matrix
     Projection = glm::perspective(glm::radians(45.0f), winsizex / winsizey, 0.1f, 100.0f);
@@ -203,18 +202,46 @@ void OpenGLWindow::initGL()
     //The model matrix
     Model = glm::mat4(1.0f);
 
-    //Model_View_Projection matrix for transformation
-    MVP = Projection * View * Model;
+    int vertexLoc = glGetAttribLocation(shader, "position");
 
     glGenBuffers(1, &vertexBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
     glBufferData(GL_ARRAY_BUFFER, geo.vertexCount() * 3 * sizeof(float), geo.vertexData(), GL_STATIC_DRAW);
+
     glVertexAttribPointer(vertexLoc, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glEnableVertexAttribArray(vertexLoc);
 
+    GLuint normalbuffer;
+    glGenBuffers(1, &normalbuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
+    glBufferData(GL_ARRAY_BUFFER, geo.vertexCount() * 3 * sizeof(glm::vec3), geo.normalData(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(
+        1,        // attribute
+        3,        // size
+        GL_FLOAT, // type
+        GL_FALSE, // normalized?
+        0,        // stride
+        (void *)0 // array buffer offset
+    );
+    glEnableVertexAttribArray(1);
+
+    //TEMP CODE
+    GLuint lightSourceVector = glGetUniformLocation(shader, "lightSource");
+    glUniform3fv(lightSourceVector, 1, &lightSource[0]);
+
+    GLuint lightSourceColor = glGetUniformLocation(shader, "lightColor");
+    glUniform3fv(lightSourceColor, 1, &lightColor[0]);
+    //********************
     //Get ModelViewProjection matrix uniform variable
-    GLuint MVP_MATRIX = glGetUniformLocation(shader, "MVP");
-    glUniformMatrix4fv(MVP_MATRIX, 1, GL_FALSE, &MVP[0][0]);
+    GLuint Model_Matrix = glGetUniformLocation(shader, "Model");
+    glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &Model[0][0]);
+    GLuint View_Matrix = glGetUniformLocation(shader, "View");
+
+    glUniformMatrix4fv(View_Matrix, 1, GL_FALSE, &View[0][0]);
+    GLuint Projection_Matrix = glGetUniformLocation(shader, "Projection");
+
+    glUniformMatrix4fv(Projection_Matrix, 1, GL_FALSE, &Projection[0][0]);
 
     glPrintError("Setup complete", true);
 }
@@ -234,6 +261,11 @@ glm::mat4 scale(const glm::mat4 &model, float size)
 
 void OpenGLWindow::render()
 {
+    GLuint lightSourceVector = glGetUniformLocation(shader, "lightSource");
+    glUniform3fv(lightSourceVector, 1, &lightSource[0]);
+    GLuint lightSourceColor = glGetUniformLocation(shader, "lightColor");
+    glUniform3fv(lightSourceColor, 1, &lightColor[0]);
+
     if (colour)
     {
         float red = sin(SDL_GetTicks());
@@ -246,15 +278,26 @@ void OpenGLWindow::render()
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glUniformMatrix4fv(glGetUniformLocation(shader, "MVP"), 1, GL_FALSE, &MVP[0][0]);
+    GLuint Model_Matrix = glGetUniformLocation(shader, "Model");
+    glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &Model[0][0]);
+    GLuint View_Matrix = glGetUniformLocation(shader, "View");
+    glUniformMatrix4fv(View_Matrix, 1, GL_FALSE, &View[0][0]);
+    GLuint Projection_Matrix = glGetUniformLocation(shader, "Projection");
+    glUniformMatrix4fv(Projection_Matrix, 1, GL_FALSE, &Projection[0][0]);
 
     glDrawArrays(GL_TRIANGLES, 0, obj_vertices_count);
 
     //draws duplicate if it should be on screen
     if (duplicate)
     {
-        glUniformMatrix4fv(glGetUniformLocation(shader, "MVP"), 1, GL_FALSE, &(Projection * View * translate(Model, obj_x_size, 0, 0))[0][0]);
 
+        GLuint Model_Matrix = glGetUniformLocation(shader, "Model");
+        glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &translate(Model, obj_x_size, 0, 0)[0][0]);
+        GLuint View_Matrix = glGetUniformLocation(shader, "View");
+        glUniformMatrix4fv(View_Matrix, 1, GL_FALSE, &View[0][0]);
+        GLuint Projection_Matrix = glGetUniformLocation(shader, "Projection");
+        glUniformMatrix4fv(Projection_Matrix, 1, GL_FALSE, &Projection[0][0]);
+        
         glDrawArrays(GL_TRIANGLES, 0, obj_vertices_count);
     }
 
@@ -309,6 +352,11 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
             return false;
         }
 
+        if (e.key.keysym.sym == SDLK_g)
+        {
+            lightColor += glm::vec3(0.5, 0.5, 0.5);
+        }
+
         if (e.key.keysym.sym == SDLK_k)
         {
             duplicate = false;
@@ -325,7 +373,22 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
                 colour = true;
             }
         }
-
+        if (e.key.keysym.sym == SDLK_UP)
+        {
+            lightSource = lightSource + glm::vec3(0, 0.5, 0);
+        }
+        if (e.key.keysym.sym == SDLK_DOWN)
+        {
+            lightSource = lightSource + glm::vec3(0, -0.5, 0);
+        }
+        if (e.key.keysym.sym == SDLK_LEFT)
+        {
+            lightSource = lightSource + glm::vec3(-1, 0, 0);
+        }
+        if (e.key.keysym.sym == SDLK_RIGHT)
+        {
+            lightSource = lightSource + glm::vec3(1, 0, 0);
+        }
         if (e.key.keysym.sym == SDLK_l)
         {
 
@@ -342,13 +405,6 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
             );
 
             Model = glm::mat4(1.0f);
-
-            MVP = Projection * View * Model;
-
-            //Get ModelViewProjection matrix uniform variable
-            GLuint MVP_MATRIX = glGetUniformLocation(shader, "MVP");
-            glUniformMatrix4fv(MVP_MATRIX, 1, GL_FALSE, &MVP[0][0]);
-            //************************************
 
             duplicate = true;
         }
@@ -387,11 +443,10 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
 
             Model = scale(Model, 1 + ((xdiff + ydiff) / 100));
         }
-
-        MVP = Projection * View * Model;
-        GLuint MVP_MATRIX = glGetUniformLocation(shader, "MVP");
-        glUniformMatrix4fv(MVP_MATRIX, 1, GL_FALSE, &MVP[0][0]);
     }
+
+    
+    
     return true;
 }
 

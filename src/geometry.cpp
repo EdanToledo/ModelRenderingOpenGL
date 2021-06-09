@@ -327,6 +327,7 @@ void* GeometryData::textureCoordData()
 
 void* GeometryData::normalData()
 {
+    
     return (void*)&normals[0];
 }
 
