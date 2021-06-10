@@ -15,7 +15,9 @@
 #include "geometry.h"
 
 using namespace std;
-
+glm::mat4 Rotation = glm::mat4(1);
+glm::mat4 Translation = glm::mat4(1);
+glm::mat4 Scaling = glm::mat4(1);
 glm::mat4 Model;
 glm::mat4 View;
 glm::mat4 Projection;
@@ -253,7 +255,7 @@ void OpenGLWindow::render()
     //draws duplicate if it should be on screen
     if (duplicate)
     {
-        glUniformMatrix4fv(glGetUniformLocation(shader, "MVP"), 1, GL_FALSE, &(Projection * View * translate(Model, obj_x_size, 0, 0))[0][0]);
+        glUniformMatrix4fv(glGetUniformLocation(shader, "MVP"), 1, GL_FALSE, &(Projection * View *Translation*Rotation*Scaling* translate(Model, obj_x_size, 0, 0))[0][0]);
 
         glDrawArrays(GL_TRIANGLES, 0, obj_vertices_count);
     }
@@ -342,13 +344,12 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
             );
 
             Model = glm::mat4(1.0f);
-
+            Rotation = glm::mat4(1);
+            Translation = glm::mat4(1);
+            Scaling = glm::mat4(1);
             MVP = Projection * View * Model;
 
-            //Get ModelViewProjection matrix uniform variable
-            GLuint MVP_MATRIX = glGetUniformLocation(shader, "MVP");
-            glUniformMatrix4fv(MVP_MATRIX, 1, GL_FALSE, &MVP[0][0]);
-            //************************************
+            
 
             duplicate = true;
         }
@@ -372,25 +373,23 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
 
         if (translating)
         {
-            Model = translate(Model, xdiff / 1000, ydiff / 1000, 0.0f);
+            Translation = translate(Translation, xdiff / 1000, ydiff / 1000, 0.0f);
         }
         if (rotating)
         {
 
-            Model = rotate(Model, axis == 'y' ? xdiff : axis == 'x' ? ydiff
-                                                                    : xdiff + ydiff,
-                           axis == 'x' ? 1 : 0, axis == 'y' ? 1 : 0, axis == 'z' ? 1 : 0);
+            Rotation = rotate(Rotation, axis == 'y' ? xdiff : axis == 'x' ? ydiff
+                                                                          : xdiff + ydiff,
+                              axis == 'x' ? 1 : 0, axis == 'y' ? 1 : 0, axis == 'z' ? 1 : 0);
         }
 
         if (scaling)
         {
 
-            Model = scale(Model, 1 + ((xdiff + ydiff) / 100));
+            Scaling = scale(Scaling, 1 + ((xdiff + ydiff) / 100));
         }
 
-        MVP = Projection * View * Model;
-        GLuint MVP_MATRIX = glGetUniformLocation(shader, "MVP");
-        glUniformMatrix4fv(MVP_MATRIX, 1, GL_FALSE, &MVP[0][0]);
+        MVP = Projection * View *Translation* Rotation*Scaling* Model ;
     }
     return true;
 }
