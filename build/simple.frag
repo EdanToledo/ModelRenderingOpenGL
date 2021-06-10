@@ -6,9 +6,11 @@ uniform vec3 lightColor1;
 uniform vec3 lightSource2;
 uniform vec3 lightColor2;
 uniform vec3 viewPos;
+uniform sampler2D textureImage;
 
 in vec3 FragPos;  
 in vec3 normal;
+in vec2 TexCoord;
 
 out vec4 outColor;
 
@@ -41,7 +43,7 @@ void main()
     vec3 specular2 = specularStrength * spec2 * lightColor2;  
     
     vec3 resultingColour = objectColor*(ambient1+ambient2+diffuse1+diffuse2 + specular1+specular2);
-    outColor = vec4(resultingColour,1);
+    outColor = texture(textureImage,TexCoord)*vec4(resultingColour,1);
 
    
 }

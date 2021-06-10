@@ -322,6 +322,7 @@ void* GeometryData::vertexData()
 
 void* GeometryData::textureCoordData()
 {
+   
     return (void*)&textureCoords[0];
 }
 
