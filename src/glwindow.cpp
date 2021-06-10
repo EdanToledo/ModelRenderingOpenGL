@@ -17,7 +17,9 @@
 #include "geometry.h"
 
 using namespace std;
-
+glm::mat4 Rotation = glm::mat4(1);
+glm::mat4 Translation = glm::mat4(1);
+glm::mat4 Scaling = glm::mat4(1);
 glm::mat4 Model;
 glm::mat4 View;
 glm::mat4 Projection;
@@ -336,7 +338,7 @@ void OpenGLWindow::render()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     GLuint Model_Matrix = glGetUniformLocation(shader, "Model");
-    glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &Model[0][0]);
+    glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &(Translation*Rotation*Scaling*Model)[0][0]);
     GLuint View_Matrix = glGetUniformLocation(shader, "View");
     glUniformMatrix4fv(View_Matrix, 1, GL_FALSE, &View[0][0]);
     GLuint Projection_Matrix = glGetUniformLocation(shader, "Projection");
@@ -349,7 +351,7 @@ void OpenGLWindow::render()
     {
 
         GLuint Model_Matrix = glGetUniformLocation(shader, "Model");
-        glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &translate(Model, obj_x_size, 0, 0)[0][0]);
+        glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &(Translation*Rotation*Scaling*translate(Model, obj_x_size, 0, 0))[0][0]);
 
         glDrawArrays(GL_TRIANGLES, 0, obj_vertices_count);
     }
@@ -515,7 +517,9 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
             lightSource1 = glm::vec3(4, 4, 1);
             lightSource2 = glm::vec3(-4, 4, 1);
             glm::vec3 cameraPosition = glm::vec3(0, 0, 3);
-
+              Rotation = glm::mat4(1);
+            Translation = glm::mat4(1);
+            Scaling = glm::mat4(1);
             duplicate = true;
         }
     }
@@ -538,12 +542,12 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
 
         if (translating)
         {
-            Model = translate(Model, xdiff / 1000, ydiff / 1000, 0.0f);
+            Translation = translate(Translation, xdiff / 1000, ydiff / 1000, 0.0f);
         }
         if (rotating)
         {
 
-            Model = rotate(Model, axis == 'y' ? xdiff : axis == 'x' ? ydiff
+            Rotation = rotate(Rotation, axis == 'y' ? xdiff : axis == 'x' ? ydiff
                                                                     : xdiff + ydiff,
                            axis == 'x' ? 1 : 0, axis == 'y' ? 1 : 0, axis == 'z' ? 1 : 0);
         }
@@ -551,7 +555,7 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
         if (scaling)
         {
 
-            Model = scale(Model, 1 + ((xdiff + ydiff) / 100));
+            Scaling = scale(Scaling, 1 + ((xdiff + ydiff) / 100));
         }
     }
 
