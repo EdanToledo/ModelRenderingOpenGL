@@ -19,6 +19,7 @@ private:
     SDL_Window* sdlWin;
 
     GLuint texture;
+    GLuint normalMap;
     GLuint vao;
     GLuint shader;
     GLuint vertexBuffer;

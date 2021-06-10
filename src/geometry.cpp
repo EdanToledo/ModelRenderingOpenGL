@@ -334,6 +334,7 @@ void* GeometryData::normalData()
 
 void* GeometryData::tangentData()
 {
+    
     return (void*)&tangents[0];
 }
 
