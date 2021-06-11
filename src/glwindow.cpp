@@ -42,7 +42,7 @@ const float winsizex = 1024;
 const float winsizey = 1024;
 float obj_x_size = 0;
 float obj_vertices_count = 0;
-
+float obj_vertices_count2 = 0;
 const char *glGetErrorString(GLenum error)
 {
     switch (error)
@@ -65,7 +65,7 @@ const char *glGetErrorString(GLenum error)
 }
 
 //Taken from learnopengl.com
-GLuint loadTexture(char const * path)
+GLuint loadTexture(char const *path)
 {
     GLuint textureID;
     glGenTextures(1, &textureID);
@@ -86,7 +86,7 @@ GLuint loadTexture(char const * path)
         glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT); // for this tutorial: use GL_CLAMP_TO_EDGE to prevent semi-transparent borders. Due to interpolation it takes texels from next repeat 
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT); // for this tutorial: use GL_CLAMP_TO_EDGE to prevent semi-transparent borders. Due to interpolation it takes texels from next repeat
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -101,7 +101,6 @@ GLuint loadTexture(char const * path)
 
     return textureID;
 }
-
 
 void glPrintError(const char *label = "Unlabelled Error Checkpoint", bool alwaysPrint = false)
 {
@@ -221,9 +220,6 @@ void OpenGLWindow::initGL()
     glCullFace(GL_BACK);
     glClearColor(0, 0, 0, 1);
 
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
     // Note that this path is relative to your working directory
     // when running the program (IE if you run from within build
     // then you need to place these files in build as well)
@@ -238,21 +234,27 @@ void OpenGLWindow::initGL()
     obj_vertices_count = geo.vertexCount();
     obj_x_size = abs(geo.minx) + abs(geo.maxx);
 
+    GeometryData geo2 = loadOBJFile("objects/suzanne.obj");
+    obj_vertices_count2 = geo2.vertexCount();
+
     texture = loadTexture("marble.png");
+    texture2 = loadTexture("bricks.jpg");
     // normalMap = loadTexture("NormalMap.png");
     // The projection matrix
     Projection = glm::perspective(glm::radians(45.0f), winsizex / winsizey, 0.1f, 100.0f);
 
     View = glm::lookAt(
-        glm::vec3(0, 0, 3), //camera position
-        glm::vec3(0, 0, 0), //camera target
-        glm::vec3(0, 1, 0)  //camera upwards direction
+        glm::vec3(0, 0, 3), // The camera position
+        glm::vec3(0, 0, 0), // The camera target
+        glm::vec3(0, 1, 0)  // The camera upwards direction
     );
     //The model matrix
     Model = glm::mat4(1.0f);
 
     int vertexLoc = glGetAttribLocation(shader, "position");
 
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
     glGenBuffers(1, &vertexBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
     glBufferData(GL_ARRAY_BUFFER, geo.vertexCount() * 3 * sizeof(float), geo.vertexData(), GL_STATIC_DRAW);
@@ -260,67 +262,104 @@ void OpenGLWindow::initGL()
     glVertexAttribPointer(vertexLoc, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glEnableVertexAttribArray(vertexLoc);
 
-    GLuint normalbuffer;
     glGenBuffers(1, &normalbuffer);
     glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
     glBufferData(GL_ARRAY_BUFFER, geo.vertexCount() * 3 * sizeof(glm::vec3), geo.normalData(), GL_STATIC_DRAW);
 
-    glVertexAttribPointer(
-        1,        // attribute
-        3,        // size
-        GL_FLOAT, // type
-        GL_FALSE, // normalized?
-        0,        // stride
-        (void *)0 // array buffer offset
-    );
+    glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,0,nullptr);
     glEnableVertexAttribArray(1);
 
-    GLuint texturebuffer;
     glGenBuffers(1, &texturebuffer);
     glBindBuffer(GL_ARRAY_BUFFER, texturebuffer);
     glBufferData(GL_ARRAY_BUFFER, geo.vertexCount() * 2 * sizeof(glm::vec2), geo.textureCoordData(), GL_STATIC_DRAW);
 
-    glVertexAttribPointer(
-        2,        // attribute
-        2,        // size
-        GL_FLOAT, // type
-        GL_FALSE, // normalized?
-        0,        // stride
-        (void *)0 // array buffer offset
-    );
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE,0,nullptr);
+
     glEnableVertexAttribArray(2);
 
-    GLuint tangentbuffer;
     glGenBuffers(1, &tangentbuffer);
     glBindBuffer(GL_ARRAY_BUFFER, tangentbuffer);
     glBufferData(GL_ARRAY_BUFFER, geo.vertexCount() * 3 * sizeof(glm::vec3), geo.tangentData(), GL_STATIC_DRAW);
 
-    glVertexAttribPointer(
-        3,        // attribute
-        3,        // size
-        GL_FLOAT, // type
-        GL_FALSE, // normalized?
-        0,        // stride
-        (void *)0 // array buffer offset
-    );
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, nullptr );
     glEnableVertexAttribArray(3);
 
-    GLuint bitangentbuffer;
     glGenBuffers(1, &bitangentbuffer);
     glBindBuffer(GL_ARRAY_BUFFER, bitangentbuffer);
     glBufferData(GL_ARRAY_BUFFER, geo.vertexCount() * 3 * sizeof(glm::vec3), geo.bitangentData(), GL_STATIC_DRAW);
 
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+    
+    glEnableVertexAttribArray(4);
+
+    //Second
+
+    glGenVertexArrays(1, &vao2);
+    glBindVertexArray(vao2);
+    glGenBuffers(1, &vertexBuffer2);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer2);
+    glBufferData(GL_ARRAY_BUFFER, geo2.vertexCount() * 3 * sizeof(float), geo2.vertexData(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(vertexLoc, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+    glEnableVertexAttribArray(vertexLoc);
+
+    glGenBuffers(1, &normalbuffer2);
+    glBindBuffer(GL_ARRAY_BUFFER, normalbuffer2);
+    glBufferData(GL_ARRAY_BUFFER, geo2.vertexCount() * 3 * sizeof(glm::vec3), geo2.normalData(), GL_STATIC_DRAW);
+
     glVertexAttribPointer(
-        4,        // attribute
-        3,        // size
-        GL_FLOAT, // type
-        GL_FALSE, // normalized?
-        0,        // stride
-        (void *)0 // array buffer offset
+        1,        
+        3,       
+        GL_FLOAT, 
+        GL_FALSE, 
+        0,        
+        nullptr
+    );
+    glEnableVertexAttribArray(1);
+
+    glGenBuffers(1, &texturebuffer2);
+    glBindBuffer(GL_ARRAY_BUFFER, texturebuffer2);
+    glBufferData(GL_ARRAY_BUFFER, geo2.vertexCount() * 2 * sizeof(glm::vec2), geo2.textureCoordData(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(
+        2,        
+        2,       
+        GL_FLOAT, 
+        GL_FALSE, 
+        0,       
+        nullptr
+    );
+    glEnableVertexAttribArray(2);
+
+    glGenBuffers(1, &tangentbuffer2);
+    glBindBuffer(GL_ARRAY_BUFFER, tangentbuffer);
+    glBufferData(GL_ARRAY_BUFFER, geo.vertexCount() * 3 * sizeof(glm::vec3), geo.tangentData(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(
+        3,        
+        3,       
+        GL_FLOAT, 
+        GL_FALSE,
+        0,       
+        nullptr
+    );
+    glEnableVertexAttribArray(3);
+
+    glGenBuffers(1, &bitangentbuffer2);
+    glBindBuffer(GL_ARRAY_BUFFER, bitangentbuffer);
+    glBufferData(GL_ARRAY_BUFFER, geo.vertexCount() * 3 * sizeof(glm::vec3), geo.bitangentData(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(
+        4,       
+        3,       
+        GL_FLOAT, 
+        GL_FALSE, 
+        0,       
+       nullptr
     );
     glEnableVertexAttribArray(4);
-    
-    glBindTexture(GL_TEXTURE_2D, texture);
+
+  
 
     GLuint lightSourceVector1 = glGetUniformLocation(shader, "lightSource1");
     glUniform3fv(lightSourceVector1, 1, &lightSource1[0]);
@@ -363,6 +402,8 @@ glm::mat4 scale(const glm::mat4 &model, float size)
 
 void OpenGLWindow::render()
 {
+    glBindVertexArray(vao);
+    glBindTexture(GL_TEXTURE_2D, texture);
 
     GLuint lightSourceVector1 = glGetUniformLocation(shader, "lightSource1");
     glUniform3fv(lightSourceVector1, 1, &lightSource1[0]);
@@ -398,11 +439,12 @@ void OpenGLWindow::render()
     //draws duplicate if it should be on screen
     if (duplicate)
     {
-
+        glBindVertexArray(vao2);
+        glBindTexture(GL_TEXTURE_2D, texture2);
         GLuint Model_Matrix = glGetUniformLocation(shader, "Model");
         glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &(Translation * glm::inverse(Rotation) * Scaling * translate(Model, obj_x_size, 0, 0))[0][0]);
 
-        glDrawArrays(GL_TRIANGLES, 0, obj_vertices_count);
+        glDrawArrays(GL_TRIANGLES, 0, obj_vertices_count2);
     }
 
     // Swap the front and back buffers on the window, effectively putting what we just "drew"
@@ -424,8 +466,11 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
             if (rotatingLights)
             {
                 rotatingLights = false;
-            }else{
-                rotatingLights= true;}
+            }
+            else
+            {
+                rotatingLights = true;
+            }
         }
         if (e.key.keysym.sym == SDLK_r)
         {
@@ -571,8 +616,9 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
             Model = glm::mat4(1.0f);
             int colorLoc = glGetUniformLocation(shader, "objectColor");
             glUniform3f(colorLoc, 1.0f, 1.0f, 1.0f);
-            lightSource1 = glm::vec3(4, 4, 1);
-            lightSource2 = glm::vec3(-4, 4, 1);
+            lightSource1 = glm::vec3(1, 0, 1);
+            lightSource2 = glm::vec3(-1, 0, 1);
+
             glm::vec3 cameraPosition = glm::vec3(0, 0, 3);
             Rotation = glm::mat4(1);
             Translation = glm::mat4(1);

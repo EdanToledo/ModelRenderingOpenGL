@@ -18,13 +18,16 @@ public:
 private:
     SDL_Window* sdlWin;
 
+    GLuint shader;
+
     GLuint texture;
     GLuint texturebuffer;
     GLuint normalMap;
     GLuint vao;
-    GLuint shader;
     GLuint vertexBuffer;
     GLuint normalbuffer;
+    GLuint tangentbuffer;
+    GLuint bitangentbuffer;
 
     GLuint texture2;
     GLuint texturebuffer2;
@@ -32,6 +35,8 @@ private:
     GLuint normalMap2;
     GLuint vao2;
     GLuint vertexBuffer2;
+    GLuint tangentbuffer2;
+    GLuint bitangentbuffer2;
 };
 
 #endif
