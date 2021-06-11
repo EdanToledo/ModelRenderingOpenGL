@@ -276,7 +276,7 @@ void OpenGLWindow::render()
     {
         glBindVertexArray(vao2);
 
-        glUniformMatrix4fv(glGetUniformLocation(shader, "MVP"), 1, GL_FALSE, &(Projection * View *Translation*Rotation*Scaling* translate(Model, obj_x_size, 0, 0))[0][0]);
+        glUniformMatrix4fv(glGetUniformLocation(shader, "MVP"), 1, GL_FALSE, &(Projection * View *Translation*glm::inverse(Rotation)*Scaling* translate(Model, obj_x_size, 0, 0))[0][0]);
 
         glDrawArrays(GL_TRIANGLES, 0, obj_vertices_count2);
     }
@@ -402,6 +402,7 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
             Rotation = rotate(Rotation, axis == 'y' ? xdiff : axis == 'x' ? ydiff
                                                                           : xdiff + ydiff,
                               axis == 'x' ? 1 : 0, axis == 'y' ? 1 : 0, axis == 'z' ? 1 : 0);
+            
         }
 
         if (scaling)
@@ -410,7 +411,7 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
             Scaling = scale(Scaling, 1 + ((xdiff + ydiff) / 100));
         }
 
-        MVP = Projection * View *Translation* Rotation*Scaling* Model ;
+        MVP = Projection * View *Translation* glm::inverse(Rotation)*Scaling* Model ;
     }
     return true;
 }
