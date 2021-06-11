@@ -176,6 +176,7 @@ void OpenGLWindow::initGL()
     glCullFace(GL_BACK);
     glClearColor(0, 0, 0, 1);
 
+
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
@@ -203,9 +204,9 @@ void OpenGLWindow::initGL()
     Projection = glm::perspective(glm::radians(45.0f), winsizex / winsizey, 0.1f, 100.0f);
 
     View = glm::lookAt(
-        glm::vec3(0, 0, 3), //camera position
-        glm::vec3(0, 0, 0), //camera target
-        glm::vec3(0, 1, 0)  //camera upwards direction
+        glm::vec3(0, 0, 3), // the camera's position
+        glm::vec3(0, 0, 0), // the camera's target
+        glm::vec3(0, 1, 0)  // the camera's upwards direction
     );
     //The model matrix
     Model = glm::mat4(1.0f);
@@ -214,20 +215,22 @@ void OpenGLWindow::initGL()
     MVP = Projection * View * Model;
 
     
-
+    // Put obj data in vertex buffer
     glGenBuffers(1, &vertexBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
     glBufferData(GL_ARRAY_BUFFER, geo.vertexCount() * 3 * sizeof(float), geo.vertexData(), GL_STATIC_DRAW);
     glVertexAttribPointer(vertexLoc, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glEnableVertexAttribArray(vertexLoc);
 
+    // Get the MVP matrix location
     GLuint MVP_MATRIX = glGetUniformLocation(shader, "MVP");
-
+    // Put the initial MVP matrix into shader
     glUniformMatrix4fv(MVP_MATRIX, 1, GL_FALSE, &MVP[0][0]);
 
+    // Load and bind vertex array object 2
     glGenVertexArrays(1, &vao2);
     glBindVertexArray(vao2);
-
+    // Load the vertex buffer 2 for second obj
     glGenBuffers(1, &vertexBuffer2);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer2);
     glBufferData(GL_ARRAY_BUFFER, geo2.vertexCount() * 3 * sizeof(float), geo2.vertexData(), GL_STATIC_DRAW);
@@ -253,8 +256,10 @@ glm::mat4 scale(const glm::mat4 &model, float size)
 
 void OpenGLWindow::render()
 {   
+    // Bind vertex array object 1 to render first obj
     glBindVertexArray(vao);
 
+    // Check if colour mode is on to change colours
     if (colour)
     {
         float red = sin(SDL_GetTicks());
@@ -268,16 +273,17 @@ void OpenGLWindow::render()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glUniformMatrix4fv(glGetUniformLocation(shader, "MVP"), 1, GL_FALSE, &MVP[0][0]);
-
+    // Draw obj
     glDrawArrays(GL_TRIANGLES, 0, obj_vertices_count);
 
     //draws duplicate if it should be on screen
     if (duplicate)
-    {
+    {   
+        // Bind vertex array 2 for second object to be drawn
         glBindVertexArray(vao2);
-
+        // Give new MVP matrix to object 2
         glUniformMatrix4fv(glGetUniformLocation(shader, "MVP"), 1, GL_FALSE, &(Projection * View *Translation*glm::inverse(Rotation)*Scaling* translate(Model, obj_x_size, 0, 0))[0][0]);
-
+        // draw second object 
         glDrawArrays(GL_TRIANGLES, 0, obj_vertices_count2);
     }
 
@@ -294,7 +300,7 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
     // Note that SDL provides both Scancodes (which correspond to physical positions on the keyboard)
     // and Keycodes (which correspond to symbols on the keyboard, and might differ across layouts)
     if (e.type == SDL_KEYDOWN)
-    {
+    {   // Rotattion axis switch
         if (e.key.keysym.sym == SDLK_r)
         {
             rotating = true;
@@ -314,12 +320,14 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
             translating = false;
             scaling = false;
         }
+        // Translation switch
         if (e.key.keysym.sym == SDLK_t)
         {
             translating = true;
             rotating = false;
             scaling = false;
         }
+        // Scaling Switch
         if (e.key.keysym.sym == SDLK_s)
         {
             scaling = true;
@@ -331,12 +339,12 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
         {
             return false;
         }
-
+        // Delete duplicate switch
         if (e.key.keysym.sym == SDLK_k)
         {
             duplicate = false;
         }
-
+        // Colour Switch
         if (e.key.keysym.sym == SDLK_c)
         {
             if (colour)
@@ -348,7 +356,7 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
                 colour = true;
             }
         }
-
+        // Reset and draw second object Switch
         if (e.key.keysym.sym == SDLK_l)
         {
 
@@ -359,9 +367,9 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
             Projection = glm::perspective(glm::radians(45.0f), winsizex / winsizey, 0.1f, 100.0f);
 
             View = glm::lookAt(
-                glm::vec3(0, 0, 3), //camera position
-                glm::vec3(0, 0, 0), //camera target
-                glm::vec3(0, 1, 0)  //camera upwards direction
+                glm::vec3(0, 0, 3), // The camera position
+                glm::vec3(0, 0, 0), // The camera target
+                glm::vec3(0, 1, 0)  // The camera upwards direction
             );
 
             Model = glm::mat4(1.0f);
@@ -369,8 +377,6 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
             Translation = glm::mat4(1);
             Scaling = glm::mat4(1);
             MVP = Projection * View * Model;
-
-            
 
             duplicate = true;
         }
@@ -392,10 +398,12 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
         float xdiff = x - e.motion.x;
         float ydiff = e.motion.y - y;
 
+        // Translate in the x and y direction
         if (translating)
         {
             Translation = translate(Translation, xdiff / 1000, ydiff / 1000, 0.0f);
         }
+        // Rotate using mouse in certain directions based on axis
         if (rotating)
         {
 
@@ -404,13 +412,13 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
                               axis == 'x' ? 1 : 0, axis == 'y' ? 1 : 0, axis == 'z' ? 1 : 0);
             
         }
-
+        //Scale the model
         if (scaling)
         {
 
             Scaling = scale(Scaling, 1 + ((xdiff + ydiff) / 100));
         }
-
+        //Inverse rotation to put rotation in world axis since model matrix is identity and never changed
         MVP = Projection * View *Translation* glm::inverse(Rotation)*Scaling* Model ;
     }
     return true;
