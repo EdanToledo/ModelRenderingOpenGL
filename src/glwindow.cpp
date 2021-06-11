@@ -35,6 +35,7 @@ const float winsizex = 1024;
 const float winsizey = 1024;
 float obj_x_size = 0;
 float obj_vertices_count = 0;
+float obj_vertices_count2 = 0;
 
 const char *glGetErrorString(GLenum error)
 {
@@ -192,6 +193,10 @@ void OpenGLWindow::initGL()
     obj_vertices_count = geo.vertexCount();
     obj_x_size = abs(geo.minx) + abs(geo.maxx);
 
+    GeometryData geo2 = loadOBJFile("objects/doggo.obj");
+    obj_vertices_count2 = geo2.vertexCount();
+
+
     int vertexLoc = glGetAttribLocation(shader, "position");
 
     // The projection matrix
@@ -208,16 +213,28 @@ void OpenGLWindow::initGL()
     //Model_View_Projection matrix for transformation
     MVP = Projection * View * Model;
 
+    
+
     glGenBuffers(1, &vertexBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
     glBufferData(GL_ARRAY_BUFFER, geo.vertexCount() * 3 * sizeof(float), geo.vertexData(), GL_STATIC_DRAW);
     glVertexAttribPointer(vertexLoc, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glEnableVertexAttribArray(vertexLoc);
 
-    //Get ModelViewProjection matrix uniform variable
     GLuint MVP_MATRIX = glGetUniformLocation(shader, "MVP");
+
     glUniformMatrix4fv(MVP_MATRIX, 1, GL_FALSE, &MVP[0][0]);
 
+    glGenVertexArrays(1, &vao2);
+    glBindVertexArray(vao2);
+
+    glGenBuffers(1, &vertexBuffer2);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer2);
+    glBufferData(GL_ARRAY_BUFFER, geo2.vertexCount() * 3 * sizeof(float), geo2.vertexData(), GL_STATIC_DRAW);
+    glVertexAttribPointer(vertexLoc, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+    glEnableVertexAttribArray(vertexLoc);
+
+   
     glPrintError("Setup complete", true);
 }
 //Following methods are essentially just wrappers so i dont have to type glm every time
@@ -235,7 +252,9 @@ glm::mat4 scale(const glm::mat4 &model, float size)
 }
 
 void OpenGLWindow::render()
-{
+{   
+    glBindVertexArray(vao);
+
     if (colour)
     {
         float red = sin(SDL_GetTicks());
@@ -255,9 +274,11 @@ void OpenGLWindow::render()
     //draws duplicate if it should be on screen
     if (duplicate)
     {
+        glBindVertexArray(vao2);
+
         glUniformMatrix4fv(glGetUniformLocation(shader, "MVP"), 1, GL_FALSE, &(Projection * View *Translation*Rotation*Scaling* translate(Model, obj_x_size, 0, 0))[0][0]);
 
-        glDrawArrays(GL_TRIANGLES, 0, obj_vertices_count);
+        glDrawArrays(GL_TRIANGLES, 0, obj_vertices_count2);
     }
 
     // Swap the front and back buffers on the window, effectively putting what we just "drew"

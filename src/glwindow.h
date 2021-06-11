@@ -21,6 +21,10 @@ private:
     GLuint vao;
     GLuint shader;
     GLuint vertexBuffer;
+
+    GLuint vao2;
+    GLuint vertexBuffer2;
+
 };
 
 #endif
