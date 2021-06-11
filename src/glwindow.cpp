@@ -25,10 +25,11 @@ glm::mat4 View;
 glm::mat4 Projection;
 
 glm::vec3 cameraPosition = glm::vec3(0, 0, 3);
-glm::vec3 lightSource1 = glm::vec3(4, 4, 1);
+glm::vec3 lightSource1 = glm::vec3(1, 0, 1);
 glm::vec3 lightColor1 = glm::vec3(0, 2, 2);
-glm::vec3 lightSource2 = glm::vec3(-4, 4, 1);
+glm::vec3 lightSource2 = glm::vec3(-1, 0, 1);
 glm::vec3 lightColor2 = glm::vec3(2, 0, 0);
+bool rotatingLights = false;
 bool dragging = false;
 bool rotating = false;
 char axis = 'x';
@@ -238,7 +239,7 @@ void OpenGLWindow::initGL()
     obj_x_size = abs(geo.minx) + abs(geo.maxx);
 
     texture = loadTexture("marble.png");
-    normalMap = loadTexture("NormalMap.png");
+    // normalMap = loadTexture("NormalMap.png");
     // The projection matrix
     Projection = glm::perspective(glm::radians(45.0f), winsizex / winsizey, 0.1f, 100.0f);
 
@@ -386,7 +387,7 @@ void OpenGLWindow::render()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     GLuint Model_Matrix = glGetUniformLocation(shader, "Model");
-    glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &(Translation * Rotation * Scaling * Model)[0][0]);
+    glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &(Translation * glm::inverse(Rotation) * Scaling * Model)[0][0]);
     GLuint View_Matrix = glGetUniformLocation(shader, "View");
     glUniformMatrix4fv(View_Matrix, 1, GL_FALSE, &View[0][0]);
     GLuint Projection_Matrix = glGetUniformLocation(shader, "Projection");
@@ -399,7 +400,7 @@ void OpenGLWindow::render()
     {
 
         GLuint Model_Matrix = glGetUniformLocation(shader, "Model");
-        glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &(Translation * Rotation * Scaling * translate(Model, obj_x_size, 0, 0))[0][0]);
+        glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &(Translation * glm::inverse(Rotation) * Scaling * translate(Model, obj_x_size, 0, 0))[0][0]);
 
         glDrawArrays(GL_TRIANGLES, 0, obj_vertices_count);
     }
@@ -418,6 +419,14 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
     // and Keycodes (which correspond to symbols on the keyboard, and might differ across layouts)
     if (e.type == SDL_KEYDOWN)
     {
+        if (e.key.keysym.sym == SDLK_a)
+        {
+            if (rotatingLights)
+            {
+                rotatingLights = false;
+            }else{
+                rotatingLights= true;}
+        }
         if (e.key.keysym.sym == SDLK_r)
         {
             rotating = true;

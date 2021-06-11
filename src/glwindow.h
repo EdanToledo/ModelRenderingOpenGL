@@ -19,10 +19,19 @@ private:
     SDL_Window* sdlWin;
 
     GLuint texture;
+    GLuint texturebuffer;
     GLuint normalMap;
     GLuint vao;
     GLuint shader;
     GLuint vertexBuffer;
+    GLuint normalbuffer;
+
+    GLuint texture2;
+    GLuint texturebuffer2;
+    GLuint normalbuffer2;
+    GLuint normalMap2;
+    GLuint vao2;
+    GLuint vertexBuffer2;
 };
 
 #endif
