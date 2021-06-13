@@ -26,7 +26,7 @@ glm::mat4 MVP;
 bool dragging = false;
 bool rotating = false;
 char axis = 'x';
-bool rotate_on_world = false;
+bool rotate_on_world = true;
 
 bool translating = false;
 bool scaling = false;
@@ -177,7 +177,6 @@ void OpenGLWindow::initGL()
     glCullFace(GL_BACK);
     glClearColor(0, 0, 0, 1);
 
-
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
@@ -198,7 +197,6 @@ void OpenGLWindow::initGL()
     GeometryData geo2 = loadOBJFile("objects/doggo.obj");
     obj_vertices_count2 = geo2.vertexCount();
 
-
     int vertexLoc = glGetAttribLocation(shader, "position");
 
     // The projection matrix
@@ -215,7 +213,6 @@ void OpenGLWindow::initGL()
     //Model_View_Projection matrix for transformation
     MVP = Projection * View * Model;
 
-    
     // Put obj data in vertex buffer
     glGenBuffers(1, &vertexBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
@@ -238,11 +235,10 @@ void OpenGLWindow::initGL()
     glVertexAttribPointer(vertexLoc, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glEnableVertexAttribArray(vertexLoc);
 
-   
     glPrintError("Setup complete", true);
 }
 //Following methods are essentially just wrappers so i dont have to type glm every time
-glm::mat4 translate( float x, float y, float z)
+glm::mat4 translate(float x, float y, float z)
 {
     return glm::translate(glm::vec3(x, y, z));
 }
@@ -256,7 +252,7 @@ glm::mat4 scale(float size)
 }
 
 void OpenGLWindow::render()
-{   
+{
     // Bind vertex array object 1 to render first obj
     glBindVertexArray(vao);
 
@@ -272,19 +268,33 @@ void OpenGLWindow::render()
     }
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    if (rotate_on_world)
+    {
+        glUniformMatrix4fv(glGetUniformLocation(shader, "MVP"), 1, GL_FALSE, &(Projection * View * Model)[0][0]);
+    }
+    else
+    {
+        glUniformMatrix4fv(glGetUniformLocation(shader, "MVP"), 1, GL_FALSE, &(Projection * View * Translation * glm::inverse(Rotation) * Scaling * Model)[0][0]);
+    }
 
-    glUniformMatrix4fv(glGetUniformLocation(shader, "MVP"), 1, GL_FALSE, &MVP[0][0]);
     // Draw obj
     glDrawArrays(GL_TRIANGLES, 0, obj_vertices_count);
 
     //draws duplicate if it should be on screen
     if (duplicate)
-    {   
+    {
         // Bind vertex array 2 for second object to be drawn
         glBindVertexArray(vao2);
         // Give new MVP matrix to object 2
-        glUniformMatrix4fv(glGetUniformLocation(shader, "MVP"), 1, GL_FALSE, &(Projection * View *glm::translate(Model, glm::vec3(obj_x_size, 0, 0)))[0][0]);
-        // draw second object 
+        if (rotate_on_world)
+        {
+            glUniformMatrix4fv(glGetUniformLocation(shader, "MVP"), 1, GL_FALSE, &(Projection * View * glm::translate(Model, glm::vec3(obj_x_size, 0, 0)))[0][0]);
+        }
+        else
+        {
+            glUniformMatrix4fv(glGetUniformLocation(shader, "MVP"), 1, GL_FALSE, &(Projection * View * Translation * glm::inverse(Rotation) * Scaling * glm::translate(Model, glm::vec3(obj_x_size, 0, 0)))[0][0]);
+        }
+        // draw second object
         glDrawArrays(GL_TRIANGLES, 0, obj_vertices_count2);
     }
 
@@ -301,7 +311,7 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
     // Note that SDL provides both Scancodes (which correspond to physical positions on the keyboard)
     // and Keycodes (which correspond to symbols on the keyboard, and might differ across layouts)
     if (e.type == SDL_KEYDOWN)
-    {   // Rotattion axis switch
+    { // Rotattion axis switch
         if (e.key.keysym.sym == SDLK_r)
         {
             rotating = true;
@@ -320,6 +330,21 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
 
             translating = false;
             scaling = false;
+        }
+        if (e.key.keysym.sym == SDLK_q)
+        {
+            if (rotate_on_world)
+            {
+                Rotation = glm::mat4(1);
+                Translation = glm::mat4(1);
+                Scaling = glm::mat4(1);
+                Model = glm::mat4(1);
+                rotate_on_world = false;
+            }
+            else
+            {
+                rotate_on_world = true;
+            }
         }
         // Translation switch
         if (e.key.keysym.sym == SDLK_t)
@@ -402,27 +427,54 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
         // Translate in the x and y direction
         if (translating)
         {
-            Translation = translate(xdiff / 1000, ydiff / 1000, 0.0f);
-            Model = Translation*Model;
+            if (rotate_on_world)
+            {
+                Translation = translate(xdiff / 1000, ydiff / 1000, 0.0f);
+                Model = Translation * Model;
+            }
+            else
+            {
+                Translation = glm::translate(Translation, glm::vec3(xdiff / 1000, ydiff / 1000, 0.0f));
+            }
         }
         // Rotate using mouse in certain directions based on axis
         if (rotating)
         {
-
-            Rotation = rotate(axis == 'y' ? xdiff : axis == 'x' ? ydiff
-                                                                          : xdiff + ydiff,
-                              axis == 'x' ? 1 : 0, axis == 'y' ? 1 : 0, axis == 'z' ? 1 : 0);
-            Model = Rotation*Model;
+            if (rotate_on_world)
+            {
+                Rotation = rotate(axis == 'y' ? xdiff : axis == 'x' ? ydiff
+                                                                    : xdiff + ydiff,
+                                  axis == 'x' ? 1 : 0, axis == 'y' ? 1 : 0, axis == 'z' ? 1 : 0);
+                Model = Rotation * Model;
+            }
+            else
+            {
+                Rotation = glm::rotate(Rotation, glm::radians(axis == 'y' ? xdiff : axis == 'x' ? ydiff
+                                                                                                : xdiff + ydiff),
+                                       glm::vec3(axis == 'x' ? 1 : 0, axis == 'y' ? 1 : 0, axis == 'z' ? 1 : 0));
+            }
         }
         //Scale the model
         if (scaling)
         {
-
-            Scaling = scale(1 + ((xdiff + ydiff) / 100));
-            Model = Scaling*Model;
+            if (rotate_on_world)
+            {
+                Scaling = scale(1 + ((xdiff + ydiff) / 100));
+                Model = Model * Scaling;
+            }
+            else
+            {
+                Scaling = glm::scale(Scaling, glm::vec3(1 + ((xdiff + ydiff) / 100)));
+            }
         }
-        //Inverse rotation to put rotation in world axis since model matrix is identity and never changed
-        MVP = Projection * View * Model ;
+        if (rotate_on_world)
+        {
+            MVP = Projection * View * Model;
+        }
+        else
+        {
+            MVP = Projection * View * Translation * glm::inverse(Rotation) * Scaling * Model;
+        }
     }
     return true;
 }
