@@ -22,8 +22,8 @@ void main()
     FragPos = vec3(Model[gl_InstanceID] * vec4(position, 1.0));
     TexCoord = aTexture;
     
-//     vec3 T = normalize(vec3(transpose(inverse(Model[gl_InstanceID])) * vec4(aTangent,   0.0)));
-//    vec3 B = normalize(vec3(transpose(inverse(Model[gl_InstanceID])) * vec4(aBitangent, 0.0)));
-//    vec3 N = normalize(vec3(transpose(inverse(Model[gl_InstanceID]))* vec4(aNormal,    0.0)));
-//     TBN = transpose(mat3(T, B, N));
+    vec3 T = normalize(vec3(transpose(inverse(Model[gl_InstanceID])) * vec4(aTangent,   0.0)));
+   vec3 B = normalize(vec3(transpose(inverse(Model[gl_InstanceID])) * vec4(aBitangent, 0.0)));
+   vec3 N = normalize(vec3(transpose(inverse(Model[gl_InstanceID]))* vec4(aNormal,    0.0)));
+    TBN = transpose(mat3(T, B, N));
 }

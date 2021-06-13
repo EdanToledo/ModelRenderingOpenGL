@@ -26,9 +26,9 @@ glm::mat4 Projection;
 
 glm::vec3 cameraPosition = glm::vec3(0, 0, 3);
 glm::vec3 lightSource1 = glm::vec3(1, 0, 1);
-glm::vec3 lightColor1 = glm::vec3(0, 2, 2);
+glm::vec3 lightColor1 = glm::normalize(glm::vec3(64, 224, 208))+glm::vec3(0.2,0.2,0.2);
 glm::vec3 lightSource2 = glm::vec3(-1, 0, 1);
-glm::vec3 lightColor2 = glm::vec3(2, 0, 0);
+glm::vec3 lightColor2 = glm::normalize(glm::vec3(255, 165, 0))+glm::vec3(0.2,0.2,0.2);
 bool rotatingLights = false;
 bool dragging = false;
 bool rotating = false;
@@ -86,7 +86,7 @@ GLuint loadTexture(char const *path)
         glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT); // for this tutorial: use GL_CLAMP_TO_EDGE to prevent semi-transparent borders. Due to interpolation it takes texels from next repeat
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT); 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -292,7 +292,7 @@ void OpenGLWindow::initGL()
     
     glEnableVertexAttribArray(4);
 
-    //Second
+    //Second object
 
     glGenVertexArrays(1, &vao2);
     glBindVertexArray(vao2);
@@ -414,6 +414,9 @@ void OpenGLWindow::render()
     glUniform3fv(lightSourceVector2, 1, &lightSource2[0]);
     GLuint lightSourceColor2 = glGetUniformLocation(shader, "lightColor2");
     glUniform3fv(lightSourceColor2, 1, &lightColor2[0]);
+
+    GLuint cameraPosIndex = glGetUniformLocation(shader, "viewPos");
+    glUniform3fv(cameraPosIndex, 1, &cameraPosition[0]);
 
     if (colour)
     {
@@ -568,19 +571,19 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
         }
         if (e.key.keysym.sym == SDLK_z)
         {
-            lightSource1 = lightSource1 + glm::vec3(0, 0.5, 0);
+            lightSource2 = lightSource2 + glm::vec3(0, 0.5, 0);
         }
         if (e.key.keysym.sym == SDLK_x)
         {
-            lightSource1 = lightSource1 + glm::vec3(0, -0.5, 0);
+            lightSource2 = lightSource2 + glm::vec3(0, -0.5, 0);
         }
         if (e.key.keysym.sym == SDLK_v)
         {
-            lightSource1 = lightSource1 + glm::vec3(-1, 0, 0);
+            lightSource2 = lightSource2 + glm::vec3(-1, 0, 0);
         }
         if (e.key.keysym.sym == SDLK_b)
         {
-            lightSource1 = lightSource1 + glm::vec3(1, 0, 0);
+            lightSource2 = lightSource2 + glm::vec3(1, 0, 0);
         }
         if (e.key.keysym.sym == SDLK_u)
         {
@@ -619,7 +622,7 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
             lightSource1 = glm::vec3(1, 0, 1);
             lightSource2 = glm::vec3(-1, 0, 1);
 
-            glm::vec3 cameraPosition = glm::vec3(0, 0, 3);
+            cameraPosition = glm::vec3(0, 0, 3);
             Rotation = glm::mat4(1);
             Translation = glm::mat4(1);
             Scaling = glm::mat4(1);

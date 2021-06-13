@@ -7,7 +7,7 @@ uniform vec3 lightSource2;
 uniform vec3 lightColor2;
 uniform vec3 viewPos;
 uniform sampler2D textureImage;
-// uniform sampler2D normalMap;
+uniform sampler2D normalMap;
 
 in vec3 FragPos;  
 in vec3 normal;
@@ -18,7 +18,7 @@ out vec4 outColor;
 
 float ambientStrength = 0.1;
 
-float specularStrength = 10;
+float specularStrength = 2;
 float shininess = 32;
 
 void main()
