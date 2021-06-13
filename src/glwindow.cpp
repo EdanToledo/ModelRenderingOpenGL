@@ -10,7 +10,7 @@
 #include <glm/ext/matrix_transform.hpp>  // glm::translate, glm::rotate, glm::scale
 #include <glm/ext/matrix_clip_space.hpp> // glm::perspective
 #include <glm/ext/scalar_constants.hpp>  // glm::pi
-
+#include <glm/gtx/transform.hpp>
 #include "glwindow.h"
 #include "geometry.h"
 
@@ -26,6 +26,7 @@ glm::mat4 MVP;
 bool dragging = false;
 bool rotating = false;
 char axis = 'x';
+bool rotate_on_world = false;
 
 bool translating = false;
 bool scaling = false;
@@ -241,17 +242,17 @@ void OpenGLWindow::initGL()
     glPrintError("Setup complete", true);
 }
 //Following methods are essentially just wrappers so i dont have to type glm every time
-glm::mat4 translate(const glm::mat4 &model, float x, float y, float z)
+glm::mat4 translate( float x, float y, float z)
 {
-    return glm::translate(model, glm::vec3(x, y, z));
+    return glm::translate(glm::vec3(x, y, z));
 }
-glm::mat4 rotate(const glm::mat4 &model, const float radians_to_rotate, float xaxis, float yaxis, float zaxis)
+glm::mat4 rotate(const float radians_to_rotate, float xaxis, float yaxis, float zaxis)
 {
-    return glm::rotate(model, glm::radians(radians_to_rotate), glm::vec3(xaxis, yaxis, zaxis));
+    return glm::rotate(glm::radians(radians_to_rotate), glm::vec3(xaxis, yaxis, zaxis));
 }
-glm::mat4 scale(const glm::mat4 &model, float size)
+glm::mat4 scale(float size)
 {
-    return glm::scale(model, glm::vec3(size));
+    return glm::scale(glm::vec3(size));
 }
 
 void OpenGLWindow::render()
@@ -282,7 +283,7 @@ void OpenGLWindow::render()
         // Bind vertex array 2 for second object to be drawn
         glBindVertexArray(vao2);
         // Give new MVP matrix to object 2
-        glUniformMatrix4fv(glGetUniformLocation(shader, "MVP"), 1, GL_FALSE, &(Projection * View *Translation*glm::inverse(Rotation)*Scaling* translate(Model, obj_x_size, 0, 0))[0][0]);
+        glUniformMatrix4fv(glGetUniformLocation(shader, "MVP"), 1, GL_FALSE, &(Projection * View *glm::translate(Model, glm::vec3(obj_x_size, 0, 0)))[0][0]);
         // draw second object 
         glDrawArrays(GL_TRIANGLES, 0, obj_vertices_count2);
     }
@@ -401,25 +402,27 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
         // Translate in the x and y direction
         if (translating)
         {
-            Translation = translate(Translation, xdiff / 1000, ydiff / 1000, 0.0f);
+            Translation = translate(xdiff / 1000, ydiff / 1000, 0.0f);
+            Model = Translation*Model;
         }
         // Rotate using mouse in certain directions based on axis
         if (rotating)
         {
 
-            Rotation = rotate(Rotation, axis == 'y' ? xdiff : axis == 'x' ? ydiff
+            Rotation = rotate(axis == 'y' ? xdiff : axis == 'x' ? ydiff
                                                                           : xdiff + ydiff,
                               axis == 'x' ? 1 : 0, axis == 'y' ? 1 : 0, axis == 'z' ? 1 : 0);
-            
+            Model = Rotation*Model;
         }
         //Scale the model
         if (scaling)
         {
 
-            Scaling = scale(Scaling, 1 + ((xdiff + ydiff) / 100));
+            Scaling = scale(1 + ((xdiff + ydiff) / 100));
+            Model = Scaling*Model;
         }
         //Inverse rotation to put rotation in world axis since model matrix is identity and never changed
-        MVP = Projection * View *Translation* glm::inverse(Rotation)*Scaling* Model ;
+        MVP = Projection * View * Model ;
     }
     return true;
 }
