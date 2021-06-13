@@ -17,7 +17,6 @@ using namespace std;
 //       w-coordinate. The loader will ignore these and assumes that all vertex specifications contain
 //       exactly 3 values, and that all texture coordinate specifications contain exactly 2 values
 
-
 // NOTE: There is currently no support for mtl material references or anything like that,
 //       just load whatever texture you want to use manually
 
@@ -37,54 +36,54 @@ void GeometryData::loadFromOBJFile(string filename)
 
     ifstream inStream;
     inStream.open(filename, ifstream::in);
-    if(inStream.fail())
+    if (inStream.fail())
     {
         cout << "Unable to open obj file: " << filename << endl;
         return;
     }
 
     OBJDataType currentDataType = NONE;
-    while(!inStream.eof())
+    while (!inStream.eof())
     {
-        switch(currentDataType)
+        switch (currentDataType)
         {
         case NONE:
         {
             inStream >> ws;
             char typeChar1 = inStream.get();
-            if(inStream.eof())
+            if (inStream.eof())
             {
                 break;
             }
             char typeChar2 = inStream.get();
-            if(typeChar1 == '#')
+            if (typeChar1 == '#')
             {
                 currentDataType = COMMENT;
             }
-            else if(typeChar1 == 'f')
+            else if (typeChar1 == 'f')
             {
                 currentDataType = FACE;
             }
-            else if(typeChar1 != 'v')
+            else if (typeChar1 != 'v')
             {
                 cout << "OBJ parse error: Expected 'v', 'f' or '#' at the start of the line" << endl;
                 cout << "Found: " << typeChar1 << typeChar2 << endl;
             }
             else
             {
-                if((typeChar2 == ' ') || (typeChar2 == '\t'))
+                if ((typeChar2 == ' ') || (typeChar2 == '\t'))
                 {
                     currentDataType = VERTEX;
                 }
-                else if(typeChar2 == 't')
+                else if (typeChar2 == 't')
                 {
                     currentDataType = TEXTURECOORD;
                 }
-                else if(typeChar2 == 'n')
+                else if (typeChar2 == 'n')
                 {
                     currentDataType = NORMAL;
                 }
-                else if(typeChar2 == 'p')
+                else if (typeChar2 == 'p')
                 {
                     cout << "OBJ parse error: Free-form geometry is not supported, ignoring" << endl;
                     currentDataType = COMMENT;
@@ -95,8 +94,8 @@ void GeometryData::loadFromOBJFile(string filename)
                     currentDataType = COMMENT;
                 }
             }
-
-        } break;
+        }
+        break;
 
         case VERTEX:
         {
@@ -108,32 +107,32 @@ void GeometryData::loadFromOBJFile(string filename)
             tempGeom.vertices.push_back(y);
             tempGeom.vertices.push_back(z);
             currentDataType = COMMENT;
-            if (x<minx)
+            if (x < minx)
             {
                 minx = x;
             }
-            if (y<miny)
+            if (y < miny)
             {
                 miny = y;
             }
-            if (z<minz)
+            if (z < minz)
             {
                 minz = z;
             }
-            if (x>maxx)
+            if (x > maxx)
             {
                 maxx = x;
             }
-            if (y>maxy)
+            if (y > maxy)
             {
                 maxy = y;
             }
-            if (z>maxz)
+            if (z > maxz)
             {
                 maxz = z;
             }
-            
-        } break;
+        }
+        break;
 
         case TEXTURECOORD:
         {
@@ -143,7 +142,8 @@ void GeometryData::loadFromOBJFile(string filename)
             tempGeom.textureCoords.push_back(u);
             tempGeom.textureCoords.push_back(v);
             currentDataType = COMMENT;
-        } break;
+        }
+        break;
 
         case NORMAL:
         {
@@ -155,7 +155,8 @@ void GeometryData::loadFromOBJFile(string filename)
             tempGeom.normals.push_back(y);
             tempGeom.normals.push_back(z);
             currentDataType = COMMENT;
-        } break;
+        }
+        break;
 
         case FACE:
         {
@@ -165,21 +166,21 @@ void GeometryData::loadFromOBJFile(string filename)
             int normalIndex = 0;
 
             FaceData face = {};
-            for(int index=0; index<3; index++)
+            for (int index = 0; index < 3; index++)
             {
                 inStream >> vertIndex;
                 char postVertexCheckChar = inStream.get();
-                if(postVertexCheckChar == '/')
+                if (postVertexCheckChar == '/')
                 {
                     char texCoordExistCheckChar = inStream.get();
                     inStream.unget();
-                    if(texCoordExistCheckChar != '/')
+                    if (texCoordExistCheckChar != '/')
                     {
                         inStream >> texCoordIndex;
                     }
 
                     char postTexCoordCheckChar = inStream.get();
-                    if(postTexCoordCheckChar == '/')
+                    if (postTexCoordCheckChar == '/')
                     {
                         inStream >> normalIndex;
                     }
@@ -187,6 +188,7 @@ void GeometryData::loadFromOBJFile(string filename)
                     {
                         inStream.unget(); // This is just to prevent us from consuming a newline
                     }
+
                 } else
                     {
                         inStream.unget(); // This is just to prevent us from consuming a newline
@@ -200,22 +202,24 @@ void GeometryData::loadFromOBJFile(string filename)
             }
             tempGeom.faces.push_back(face);
             currentDataType = COMMENT;
-        } break;
+        }
+        break;
 
         case COMMENT:
         {
             int nextChar = inStream.get();
-            if(nextChar == '\n')
+            if (nextChar == '\n')
             {
                 currentDataType = NONE;
             }
-        } break;
+        }
+        break;
 
         default:
-        {}
+        {
+        }
         }
     }
-
 
     // NOTE: Since our rendering pipeline supports only 1 set of indices for our data, we need to
     //       do some post-processing here in order to lay out all the unique v/vt/vn triples
@@ -224,42 +228,42 @@ void GeometryData::loadFromOBJFile(string filename)
     // TODO: We're deciding whether or not to add texture coords and normals on a per-face basis,
     //       which doesn't really make sense because if there are any then there should be for all
     //       vertices, but this way that might not be the case
-    for(int faceIndex=0; faceIndex<tempGeom.faces.size(); faceIndex++)
+    for (int faceIndex = 0; faceIndex < tempGeom.faces.size(); faceIndex++)
     {
         FaceData face = tempGeom.faces[faceIndex];
         bool hasTextureCoords = (face.texCoordIndex[0] >= 0);
         bool hasNormals = (face.normalIndex[0] >= 0);
-        for(int vertIndex=0; vertIndex<3; vertIndex++)
+        for (int vertIndex = 0; vertIndex < 3; vertIndex++)
         {
-            for(int i=0; i<3; i++)
+            for (int i = 0; i < 3; i++)
             {
-                vertices.push_back(tempGeom.vertices[(3*face.vertexIndex[vertIndex])+i]);
+                vertices.push_back(tempGeom.vertices[(3 * face.vertexIndex[vertIndex]) + i]);
             }
 
-            if(hasTextureCoords)
+            if (hasTextureCoords)
             {
-                for(int i=0; i<2; i++)
+                for (int i = 0; i < 2; i++)
                 {
                     textureCoords.push_back(
-                            tempGeom.textureCoords[(2*face.texCoordIndex[vertIndex])+i]);
+                        tempGeom.textureCoords[(2 * face.texCoordIndex[vertIndex]) + i]);
                 }
             }
-            if(hasNormals)
+            if (hasNormals)
             {
-                for(int i=0; i<3; i++)
+                for (int i = 0; i < 3; i++)
                 {
-                    normals.push_back(tempGeom.normals[(3*face.normalIndex[vertIndex])+i]);
+                    normals.push_back(tempGeom.normals[(3 * face.normalIndex[vertIndex]) + i]);
                 }
             }
         }
 
         // Compute the (bi)tangent for the face, and add it for each vertex
-        if(hasTextureCoords && hasNormals)
+        if (hasTextureCoords && hasNormals)
         {
             int vertexStartIndex = vertices.size() - 9;
             int uvStartIndex = textureCoords.size() - 6;
-            float* vertices = &this->vertices[vertexStartIndex];
-            float* texCoords = &textureCoords[uvStartIndex];
+            float *vertices = &this->vertices[vertexStartIndex];
+            float *texCoords = &textureCoords[uvStartIndex];
 
             float deltaX1 = vertices[3] - vertices[0];
             float deltaY1 = vertices[4] - vertices[1];
@@ -273,22 +277,22 @@ void GeometryData::loadFromOBJFile(string filename)
             float deltaU2 = texCoords[4] - texCoords[0];
             float deltaV2 = texCoords[5] - texCoords[1];
 
-            float inverseDet = 1.0f / (deltaU1*deltaV2 - deltaU2*deltaV1);
+            float inverseDet = 1.0f / (deltaU1 * deltaV2 - deltaU2 * deltaV1);
 
-            float tangentX = inverseDet * (deltaV2*deltaX1 - deltaV1*deltaX2);
-            float tangentY = inverseDet * (deltaV2*deltaY1 - deltaV1*deltaY2);
-            float tangentZ = inverseDet * (deltaV2*deltaZ1 - deltaV1*deltaZ2);
+            float tangentX = inverseDet * (deltaV2 * deltaX1 - deltaV1 * deltaX2);
+            float tangentY = inverseDet * (deltaV2 * deltaY1 - deltaV1 * deltaY2);
+            float tangentZ = inverseDet * (deltaV2 * deltaZ1 - deltaV1 * deltaZ2);
 
-            float bitangentX = inverseDet * (deltaU1*deltaX2 - deltaU2*deltaX1);
-            float bitangentY = inverseDet * (deltaU1*deltaY2 - deltaU2*deltaY1);
-            float bitangentZ = inverseDet * (deltaU1*deltaZ2 - deltaU2*deltaZ1);
+            float bitangentX = inverseDet * (deltaU1 * deltaX2 - deltaU2 * deltaX1);
+            float bitangentY = inverseDet * (deltaU1 * deltaY2 - deltaU2 * deltaY1);
+            float bitangentZ = inverseDet * (deltaU1 * deltaZ2 - deltaU2 * deltaZ1);
 
-            float tangentLength = sqrt(tangentX*tangentX +
-                                       tangentY*tangentY +
-                                       tangentZ*tangentZ);
-            float bitangentLength = sqrt(bitangentX*bitangentX +
-                                         bitangentY*bitangentY +
-                                         bitangentZ*bitangentZ);
+            float tangentLength = sqrt(tangentX * tangentX +
+                                       tangentY * tangentY +
+                                       tangentZ * tangentZ);
+            float bitangentLength = sqrt(bitangentX * bitangentX +
+                                         bitangentY * bitangentY +
+                                         bitangentZ * bitangentZ);
 
             tangentX /= tangentLength;
             tangentY /= tangentLength;
@@ -298,7 +302,7 @@ void GeometryData::loadFromOBJFile(string filename)
             bitangentZ /= bitangentLength;
 
             // NOTE: Each vertex in the face gets the same (bi)tangent pair
-            for(int vertIndex=0; vertIndex<3; vertIndex++)
+            for (int vertIndex = 0; vertIndex < 3; vertIndex++)
             {
                 tangents.push_back(tangentX);
                 tangents.push_back(tangentY);
@@ -311,35 +315,38 @@ void GeometryData::loadFromOBJFile(string filename)
         }
     }
 
-    cout << "Successfully loaded an OBJ with " << vertices.size()/3 << " vertices " << endl;
+    cout << "Successfully loaded an OBJ with " << vertices.size() / 3 << " vertices " << endl;
 }
 
 int GeometryData::vertexCount()
 {
-    return vertices.size()/3;
+    return vertices.size() / 3;
 }
 
-void* GeometryData::vertexData()
+void *GeometryData::vertexData()
 {
-    return (void*)&vertices[0];
+    return (void *)&vertices[0];
 }
 
-void* GeometryData::textureCoordData()
+void *GeometryData::textureCoordData()
 {
-    return (void*)&textureCoords[0];
+
+    return (void *)&textureCoords[0];
 }
 
-void* GeometryData::normalData()
+void *GeometryData::normalData()
 {
-    return (void*)&normals[0];
+
+    return (void *)&normals[0];
 }
 
-void* GeometryData::tangentData()
+void *GeometryData::tangentData()
 {
-    return (void*)&tangents[0];
+
+    return (void *)&tangents[0];
 }
 
-void* GeometryData::bitangentData()
+void *GeometryData::bitangentData()
 {
-    return (void*)&bitangents[0];
+    return (void *)&bitangents[0];
 }

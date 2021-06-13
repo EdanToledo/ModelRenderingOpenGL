@@ -3,6 +3,8 @@
 
 #include "SDL.h"
 #include <GL/glew.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 #include <glm/vec3.hpp>                  // glm::vec3
 #include <glm/vec4.hpp>                  // glm::vec4
@@ -21,8 +23,13 @@ glm::mat4 Scaling = glm::mat4(1);
 glm::mat4 Model;
 glm::mat4 View;
 glm::mat4 Projection;
-glm::mat4 MVP;
 
+glm::vec3 cameraPosition = glm::vec3(0, 0, 3);
+glm::vec3 lightSource1 = glm::vec3(1, 0, 1);
+glm::vec3 lightColor1 = glm::normalize(glm::vec3(64, 224, 208))+glm::vec3(0.2,0.2,0.2);
+glm::vec3 lightSource2 = glm::vec3(-1, 0, 1);
+glm::vec3 lightColor2 = glm::normalize(glm::vec3(255, 165, 0))+glm::vec3(0.2,0.2,0.2);
+bool rotatingLights = false;
 bool dragging = false;
 bool rotating = false;
 char axis = 'x';
@@ -57,6 +64,44 @@ const char *glGetErrorString(GLenum error)
     default:
         return "UNRECOGNIZED";
     }
+}
+
+//Taken from learnopengl.com
+GLuint loadTexture(char const *path)
+{
+    GLuint textureID;
+    glGenTextures(1, &textureID);
+
+    int width, height, nrComponents;
+    unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
+    if (data)
+    {
+        GLenum format;
+        if (nrComponents == 1)
+            format = GL_RED;
+        else if (nrComponents == 3)
+            format = GL_RGB;
+        else if (nrComponents == 4)
+            format = GL_RGBA;
+
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT); 
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        stbi_image_free(data);
+    }
+    else
+    {
+        std::cout << "Texture failed to load at path: " << path << std::endl;
+        stbi_image_free(data);
+    }
+
+    return textureID;
 }
 
 void glPrintError(const char *label = "Unlabelled Error Checkpoint", bool alwaysPrint = false)
@@ -177,9 +222,6 @@ void OpenGLWindow::initGL()
     glCullFace(GL_BACK);
     glClearColor(0, 0, 0, 1);
 
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
     // Note that this path is relative to your working directory
     // when running the program (IE if you run from within build
     // then you need to place these files in build as well)
@@ -190,15 +232,18 @@ void OpenGLWindow::initGL()
     glUniform3f(colorLoc, 1.0f, 1.0f, 1.0f);
 
     // Load the model that we want to use and buffer the vertex attributes
-    GeometryData geo = loadOBJFile("objects/teapot.obj");
+    GeometryData geo = loadOBJFile("objects/suzanne.obj");
     obj_vertices_count = geo.vertexCount();
     obj_x_size = abs(geo.minx) + abs(geo.maxx);
 
-    GeometryData geo2 = loadOBJFile("objects/doggo.obj");
+
+    GeometryData geo2 = loadOBJFile("objects/suzanne.obj");
     obj_vertices_count2 = geo2.vertexCount();
 
-    int vertexLoc = glGetAttribLocation(shader, "position");
 
+    texture = loadTexture("marble.png");
+    texture2 = loadTexture("bricks.jpg");
+    // normalMap = loadTexture("NormalMap.png");
     // The projection matrix
     Projection = glm::perspective(glm::radians(45.0f), winsizex / winsizey, 0.1f, 100.0f);
 
@@ -210,20 +255,142 @@ void OpenGLWindow::initGL()
     //The model matrix
     Model = glm::mat4(1.0f);
 
-    //Model_View_Projection matrix for transformation
-    MVP = Projection * View * Model;
+    int vertexLoc = glGetAttribLocation(shader, "position");
 
-    // Put obj data in vertex buffer
+
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
     glGenBuffers(1, &vertexBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
     glBufferData(GL_ARRAY_BUFFER, geo.vertexCount() * 3 * sizeof(float), geo.vertexData(), GL_STATIC_DRAW);
+
     glVertexAttribPointer(vertexLoc, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glEnableVertexAttribArray(vertexLoc);
 
-    // Get the MVP matrix location
-    GLuint MVP_MATRIX = glGetUniformLocation(shader, "MVP");
-    // Put the initial MVP matrix into shader
-    glUniformMatrix4fv(MVP_MATRIX, 1, GL_FALSE, &MVP[0][0]);
+    glGenBuffers(1, &normalbuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
+    glBufferData(GL_ARRAY_BUFFER, geo.vertexCount() * 3 * sizeof(glm::vec3), geo.normalData(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,0,nullptr);
+    glEnableVertexAttribArray(1);
+
+    glGenBuffers(1, &texturebuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, texturebuffer);
+    glBufferData(GL_ARRAY_BUFFER, geo.vertexCount() * 2 * sizeof(glm::vec2), geo.textureCoordData(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE,0,nullptr);
+
+    glEnableVertexAttribArray(2);
+
+    glGenBuffers(1, &tangentbuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, tangentbuffer);
+    glBufferData(GL_ARRAY_BUFFER, geo.vertexCount() * 3 * sizeof(glm::vec3), geo.tangentData(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, nullptr );
+    glEnableVertexAttribArray(3);
+
+    glGenBuffers(1, &bitangentbuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, bitangentbuffer);
+    glBufferData(GL_ARRAY_BUFFER, geo.vertexCount() * 3 * sizeof(glm::vec3), geo.bitangentData(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+    
+    glEnableVertexAttribArray(4);
+
+    //Second object
+
+    glGenVertexArrays(1, &vao2);
+    glBindVertexArray(vao2);
+    glGenBuffers(1, &vertexBuffer2);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer2);
+    glBufferData(GL_ARRAY_BUFFER, geo2.vertexCount() * 3 * sizeof(float), geo2.vertexData(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(vertexLoc, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+    glEnableVertexAttribArray(vertexLoc);
+
+
+    glGenBuffers(1, &normalbuffer2);
+    glBindBuffer(GL_ARRAY_BUFFER, normalbuffer2);
+    glBufferData(GL_ARRAY_BUFFER, geo2.vertexCount() * 3 * sizeof(glm::vec3), geo2.normalData(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(
+        1,        
+        3,       
+        GL_FLOAT, 
+        GL_FALSE, 
+        0,        
+        nullptr
+    );
+    glEnableVertexAttribArray(1);
+
+    glGenBuffers(1, &texturebuffer2);
+    glBindBuffer(GL_ARRAY_BUFFER, texturebuffer2);
+    glBufferData(GL_ARRAY_BUFFER, geo2.vertexCount() * 2 * sizeof(glm::vec2), geo2.textureCoordData(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(
+        2,        
+        2,       
+        GL_FLOAT, 
+        GL_FALSE, 
+        0,       
+        nullptr
+    );
+    glEnableVertexAttribArray(2);
+
+    glGenBuffers(1, &tangentbuffer2);
+    glBindBuffer(GL_ARRAY_BUFFER, tangentbuffer);
+    glBufferData(GL_ARRAY_BUFFER, geo.vertexCount() * 3 * sizeof(glm::vec3), geo.tangentData(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(
+        3,        
+        3,       
+        GL_FLOAT, 
+        GL_FALSE,
+        0,       
+        nullptr
+    );
+    glEnableVertexAttribArray(3);
+
+    glGenBuffers(1, &bitangentbuffer2);
+    glBindBuffer(GL_ARRAY_BUFFER, bitangentbuffer);
+    glBufferData(GL_ARRAY_BUFFER, geo.vertexCount() * 3 * sizeof(glm::vec3), geo.bitangentData(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(
+        4,       
+        3,       
+        GL_FLOAT, 
+        GL_FALSE, 
+        0,       
+       nullptr
+    );
+    glEnableVertexAttribArray(4);
+
+  
+
+    GLuint lightSourceVector1 = glGetUniformLocation(shader, "lightSource1");
+    glUniform3fv(lightSourceVector1, 1, &lightSource1[0]);
+    GLuint lightSourceColor1 = glGetUniformLocation(shader, "lightColor1");
+    glUniform3fv(lightSourceColor1, 1, &lightColor1[0]);
+
+    GLuint lightSourceVector2 = glGetUniformLocation(shader, "lightSource2");
+    glUniform3fv(lightSourceVector2, 1, &lightSource2[0]);
+    GLuint lightSourceColor2 = glGetUniformLocation(shader, "lightColor2");
+    glUniform3fv(lightSourceColor2, 1, &lightColor2[0]);
+
+    GLuint viewPosID = glGetUniformLocation(shader, "viewPos");
+    glUniform3fv(viewPosID, 1, &cameraPosition[0]);
+    //********************
+    //Get ModelViewProjection matrix uniform variable
+    GLuint Model_Matrix = glGetUniformLocation(shader, "Model");
+    glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &Model[0][0]);
+    GLuint View_Matrix = glGetUniformLocation(shader, "View");
+
+    glUniformMatrix4fv(View_Matrix, 1, GL_FALSE, &View[0][0]);
+    GLuint Projection_Matrix = glGetUniformLocation(shader, "Projection");
+
+    glUniformMatrix4fv(Projection_Matrix, 1, GL_FALSE, &Projection[0][0]);
+
 
     // Load and bind vertex array object 2
     glGenVertexArrays(1, &vao2);
@@ -253,10 +420,26 @@ glm::mat4 scale(float size)
 
 void OpenGLWindow::render()
 {
-    // Bind vertex array object 1 to render first obj
+
     glBindVertexArray(vao);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    GLuint lightSourceVector1 = glGetUniformLocation(shader, "lightSource1");
+    glUniform3fv(lightSourceVector1, 1, &lightSource1[0]);
+    GLuint lightSourceColor1 = glGetUniformLocation(shader, "lightColor1");
+    glUniform3fv(lightSourceColor1, 1, &lightColor1[0]);
+
+    GLuint lightSourceVector2 = glGetUniformLocation(shader, "lightSource2");
+    glUniform3fv(lightSourceVector2, 1, &lightSource2[0]);
+    GLuint lightSourceColor2 = glGetUniformLocation(shader, "lightColor2");
+    glUniform3fv(lightSourceColor2, 1, &lightColor2[0]);
+
+    GLuint cameraPosIndex = glGetUniformLocation(shader, "viewPos");
+    glUniform3fv(cameraPosIndex, 1, &cameraPosition[0]);
+
 
     // Check if colour mode is on to change colours
+
     if (colour)
     {
         float red = sin(SDL_GetTicks());
@@ -268,33 +451,47 @@ void OpenGLWindow::render()
     }
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  
+  GLuint View_Matrix = glGetUniformLocation(shader, "View");
+    glUniformMatrix4fv(View_Matrix, 1, GL_FALSE, &View[0][0]);
+    GLuint Projection_Matrix = glGetUniformLocation(shader, "Projection");
+    glUniformMatrix4fv(Projection_Matrix, 1, GL_FALSE, &Projection[0][0]);
+  
     if (rotate_on_world)
     {
-        glUniformMatrix4fv(glGetUniformLocation(shader, "MVP"), 1, GL_FALSE, &(Projection * View * Model)[0][0]);
+      GLuint Model_Matrix = glGetUniformLocation(shader, "Model");
+    glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &(Model)[0][0]);
+    
+ 
     }
     else
     {
-        glUniformMatrix4fv(glGetUniformLocation(shader, "MVP"), 1, GL_FALSE, &(Projection * View * Translation * glm::inverse(Rotation) * Scaling * Model)[0][0]);
-    }
+      glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &(Translation * glm::inverse(Rotation) * Scaling * Model)[0][0]);
+      }
 
-    // Draw obj
     glDrawArrays(GL_TRIANGLES, 0, obj_vertices_count);
 
     //draws duplicate if it should be on screen
     if (duplicate)
     {
-        // Bind vertex array 2 for second object to be drawn
+
         glBindVertexArray(vao2);
-        // Give new MVP matrix to object 2
+        glBindTexture(GL_TEXTURE_2D, texture2);
+        GLuint Model_Matrix = glGetUniformLocation(shader, "Model");
+        
+
+       
         if (rotate_on_world)
         {
-            glUniformMatrix4fv(glGetUniformLocation(shader, "MVP"), 1, GL_FALSE, &(Projection * View * glm::translate(Model, glm::vec3(obj_x_size, 0, 0)))[0][0]);
+            glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &(glm::translate(Model, glm::vec3(obj_x_size, 0, 0)))[0][0]);
         }
         else
         {
-            glUniformMatrix4fv(glGetUniformLocation(shader, "MVP"), 1, GL_FALSE, &(Projection * View * Translation * glm::inverse(Rotation) * Scaling * glm::translate(Model, glm::vec3(obj_x_size, 0, 0)))[0][0]);
+         glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &(Translation * glm::inverse(Rotation) * Scaling * translate(Model, obj_x_size, 0, 0))[0][0]);
+
         }
         // draw second object
+
         glDrawArrays(GL_TRIANGLES, 0, obj_vertices_count2);
     }
 
@@ -311,7 +508,19 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
     // Note that SDL provides both Scancodes (which correspond to physical positions on the keyboard)
     // and Keycodes (which correspond to symbols on the keyboard, and might differ across layouts)
     if (e.type == SDL_KEYDOWN)
-    { // Rotattion axis switch
+    {
+        if (e.key.keysym.sym == SDLK_a)
+        {
+            if (rotatingLights)
+            {
+                rotatingLights = false;
+            }
+            else
+            {
+                rotatingLights = true;
+            }
+        }
+
         if (e.key.keysym.sym == SDLK_r)
         {
             rotating = true;
@@ -365,7 +574,15 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
         {
             return false;
         }
+
+
+        if (e.key.keysym.sym == SDLK_g)
+        {
+            lightColor1 += glm::vec3(0.5, 0.5, 0.5);
+        }
+
         // Delete duplicate switch
+
         if (e.key.keysym.sym == SDLK_k)
         {
             duplicate = false;
@@ -382,7 +599,77 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
                 colour = true;
             }
         }
-        // Reset and draw second object Switch
+
+        if (e.key.keysym.sym == SDLK_UP)
+        {
+            glm::vec3 cameraDirection = glm::normalize(cameraPosition - glm::vec3(0, 0, 0));
+            glm::vec3 cameraRight = glm::normalize(glm::cross(glm::vec3(0, 1, 0), cameraDirection));
+            glm::vec4 newpos = glm::rotate(glm::mat4(1), glm::radians(-10.0f), cameraRight) * glm::vec4((cameraPosition - glm::vec3(0, 0, 0)) + glm::vec3(0, 0, 0), 1);
+            cameraPosition.x = newpos.x;
+            cameraPosition.y = newpos.y;
+            cameraPosition.z = newpos.z;
+            View = glm::lookAt(cameraPosition, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+        }
+        if (e.key.keysym.sym == SDLK_DOWN)
+        {
+            glm::vec3 cameraDirection = glm::normalize(cameraPosition - glm::vec3(0, 0, 0));
+            glm::vec3 cameraRight = glm::normalize(glm::cross(glm::vec3(0, 1, 0), cameraDirection));
+            glm::vec4 newpos = glm::rotate(glm::mat4(1), glm::radians(10.0f), cameraRight) * glm::vec4((cameraPosition - glm::vec3(0, 0, 0)) + glm::vec3(0, 0, 0), 1);
+            cameraPosition.x = newpos.x;
+            cameraPosition.y = newpos.y;
+            cameraPosition.z = newpos.z;
+            View = glm::lookAt(cameraPosition, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+        }
+        if (e.key.keysym.sym == SDLK_LEFT)
+        {
+            glm::vec4 newpos = rotate(glm::mat4(1), -10, 0, 1, 0) * glm::vec4((cameraPosition - glm::vec3(0, 0, 0)) + glm::vec3(0, 0, 0), 1);
+            cameraPosition.x = newpos.x;
+            cameraPosition.y = newpos.y;
+            cameraPosition.z = newpos.z;
+            View = glm::lookAt(cameraPosition, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+        }
+        if (e.key.keysym.sym == SDLK_RIGHT)
+        {
+            glm::vec4 newpos = rotate(glm::mat4(1), 10, 0, 1, 0) * glm::vec4((cameraPosition - glm::vec3(0, 0, 0)) + glm::vec3(0, 0, 0), 1);
+            cameraPosition.x = newpos.x;
+            cameraPosition.y = newpos.y;
+            cameraPosition.z = newpos.z;
+            View = glm::lookAt(cameraPosition, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+        }
+        if (e.key.keysym.sym == SDLK_z)
+        {
+            lightSource2 = lightSource2 + glm::vec3(0, 0.5, 0);
+        }
+        if (e.key.keysym.sym == SDLK_x)
+        {
+            lightSource2 = lightSource2 + glm::vec3(0, -0.5, 0);
+        }
+        if (e.key.keysym.sym == SDLK_v)
+        {
+            lightSource2 = lightSource2 + glm::vec3(-1, 0, 0);
+        }
+        if (e.key.keysym.sym == SDLK_b)
+        {
+            lightSource2 = lightSource2 + glm::vec3(1, 0, 0);
+        }
+        if (e.key.keysym.sym == SDLK_u)
+        {
+            lightSource1 = lightSource1 + glm::vec3(0, 0.5, 0);
+        }
+        if (e.key.keysym.sym == SDLK_i)
+        {
+            lightSource1 = lightSource1 + glm::vec3(0, -0.5, 0);
+        }
+        if (e.key.keysym.sym == SDLK_o)
+        {
+            lightSource1 = lightSource1 + glm::vec3(-1, 0, 0);
+        }
+        if (e.key.keysym.sym == SDLK_p)
+        {
+            lightSource1 = lightSource1 + glm::vec3(1, 0, 0);
+        }
+
+
         if (e.key.keysym.sym == SDLK_l)
         {
 
@@ -399,10 +686,16 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
             );
 
             Model = glm::mat4(1.0f);
+
+            int colorLoc = glGetUniformLocation(shader, "objectColor");
+            glUniform3f(colorLoc, 1.0f, 1.0f, 1.0f);
+            lightSource1 = glm::vec3(1, 0, 1);
+            lightSource2 = glm::vec3(-1, 0, 1);
+
+            cameraPosition = glm::vec3(0, 0, 3);
             Rotation = glm::mat4(1);
             Translation = glm::mat4(1);
             Scaling = glm::mat4(1);
-            MVP = Projection * View * Model;
 
             duplicate = true;
         }
@@ -427,6 +720,7 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
         // Translate in the x and y direction
         if (translating)
         {
+
             if (rotate_on_world)
             {
                 Translation = translate(xdiff / 1000, ydiff / 1000, 0.0f);
@@ -436,10 +730,12 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
             {
                 Translation = glm::translate(Translation, glm::vec3(xdiff / 1000, ydiff / 1000, 0.0f));
             }
+
         }
         // Rotate using mouse in certain directions based on axis
         if (rotating)
         {
+
             if (rotate_on_world)
             {
                 Rotation = rotate(axis == 'y' ? xdiff : axis == 'x' ? ydiff
@@ -453,10 +749,12 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
                                                                                                 : xdiff + ydiff),
                                        glm::vec3(axis == 'x' ? 1 : 0, axis == 'y' ? 1 : 0, axis == 'z' ? 1 : 0));
             }
+
         }
         //Scale the model
         if (scaling)
         {
+
             if (rotate_on_world)
             {
                 Scaling = scale(1 + ((xdiff + ydiff) / 100));
@@ -467,15 +765,9 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
                 Scaling = glm::scale(Scaling, glm::vec3(1 + ((xdiff + ydiff) / 100)));
             }
         }
-        if (rotate_on_world)
-        {
-            MVP = Projection * View * Model;
-        }
-        else
-        {
-            MVP = Projection * View * Translation * glm::inverse(Rotation) * Scaling * Model;
-        }
+        
     }
+
     return true;
 }
 
