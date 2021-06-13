@@ -12,7 +12,7 @@
 #include <glm/ext/matrix_transform.hpp>  // glm::translate, glm::rotate, glm::scale
 #include <glm/ext/matrix_clip_space.hpp> // glm::perspective
 #include <glm/ext/scalar_constants.hpp>  // glm::pi
-
+#include <glm/gtx/transform.hpp>
 #include "glwindow.h"
 #include "geometry.h"
 
@@ -33,6 +33,7 @@ bool rotatingLights = false;
 bool dragging = false;
 bool rotating = false;
 char axis = 'x';
+bool rotate_on_world = true;
 
 bool translating = false;
 bool scaling = false;
@@ -43,6 +44,7 @@ const float winsizey = 1024;
 float obj_x_size = 0;
 float obj_vertices_count = 0;
 float obj_vertices_count2 = 0;
+
 const char *glGetErrorString(GLenum error)
 {
     switch (error)
@@ -234,8 +236,10 @@ void OpenGLWindow::initGL()
     obj_vertices_count = geo.vertexCount();
     obj_x_size = abs(geo.minx) + abs(geo.maxx);
 
+
     GeometryData geo2 = loadOBJFile("objects/suzanne.obj");
     obj_vertices_count2 = geo2.vertexCount();
+
 
     texture = loadTexture("marble.png");
     texture2 = loadTexture("bricks.jpg");
@@ -244,17 +248,19 @@ void OpenGLWindow::initGL()
     Projection = glm::perspective(glm::radians(45.0f), winsizex / winsizey, 0.1f, 100.0f);
 
     View = glm::lookAt(
-        glm::vec3(0, 0, 3), // The camera position
-        glm::vec3(0, 0, 0), // The camera target
-        glm::vec3(0, 1, 0)  // The camera upwards direction
+        glm::vec3(0, 0, 3), // the camera's position
+        glm::vec3(0, 0, 0), // the camera's target
+        glm::vec3(0, 1, 0)  // the camera's upwards direction
     );
     //The model matrix
     Model = glm::mat4(1.0f);
 
     int vertexLoc = glGetAttribLocation(shader, "position");
 
+
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
+
     glGenBuffers(1, &vertexBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
     glBufferData(GL_ARRAY_BUFFER, geo.vertexCount() * 3 * sizeof(float), geo.vertexData(), GL_STATIC_DRAW);
@@ -302,6 +308,7 @@ void OpenGLWindow::initGL()
 
     glVertexAttribPointer(vertexLoc, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glEnableVertexAttribArray(vertexLoc);
+
 
     glGenBuffers(1, &normalbuffer2);
     glBindBuffer(GL_ARRAY_BUFFER, normalbuffer2);
@@ -384,24 +391,36 @@ void OpenGLWindow::initGL()
 
     glUniformMatrix4fv(Projection_Matrix, 1, GL_FALSE, &Projection[0][0]);
 
+
+    // Load and bind vertex array object 2
+    glGenVertexArrays(1, &vao2);
+    glBindVertexArray(vao2);
+    // Load the vertex buffer 2 for second obj
+    glGenBuffers(1, &vertexBuffer2);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer2);
+    glBufferData(GL_ARRAY_BUFFER, geo2.vertexCount() * 3 * sizeof(float), geo2.vertexData(), GL_STATIC_DRAW);
+    glVertexAttribPointer(vertexLoc, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+    glEnableVertexAttribArray(vertexLoc);
+
     glPrintError("Setup complete", true);
 }
 //Following methods are essentially just wrappers so i dont have to type glm every time
-glm::mat4 translate(const glm::mat4 &model, float x, float y, float z)
+glm::mat4 translate(float x, float y, float z)
 {
-    return glm::translate(model, glm::vec3(x, y, z));
+    return glm::translate(glm::vec3(x, y, z));
 }
-glm::mat4 rotate(const glm::mat4 &model, const float radians_to_rotate, float xaxis, float yaxis, float zaxis)
+glm::mat4 rotate(const float radians_to_rotate, float xaxis, float yaxis, float zaxis)
 {
-    return glm::rotate(model, glm::radians(radians_to_rotate), glm::vec3(xaxis, yaxis, zaxis));
+    return glm::rotate(glm::radians(radians_to_rotate), glm::vec3(xaxis, yaxis, zaxis));
 }
-glm::mat4 scale(const glm::mat4 &model, float size)
+glm::mat4 scale(float size)
 {
-    return glm::scale(model, glm::vec3(size));
+    return glm::scale(glm::vec3(size));
 }
 
 void OpenGLWindow::render()
 {
+
     glBindVertexArray(vao);
     glBindTexture(GL_TEXTURE_2D, texture);
 
@@ -418,6 +437,9 @@ void OpenGLWindow::render()
     GLuint cameraPosIndex = glGetUniformLocation(shader, "viewPos");
     glUniform3fv(cameraPosIndex, 1, &cameraPosition[0]);
 
+
+    // Check if colour mode is on to change colours
+
     if (colour)
     {
         float red = sin(SDL_GetTicks());
@@ -429,23 +451,46 @@ void OpenGLWindow::render()
     }
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    GLuint Model_Matrix = glGetUniformLocation(shader, "Model");
-    glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &(Translation * glm::inverse(Rotation) * Scaling * Model)[0][0]);
-    GLuint View_Matrix = glGetUniformLocation(shader, "View");
+  
+  GLuint View_Matrix = glGetUniformLocation(shader, "View");
     glUniformMatrix4fv(View_Matrix, 1, GL_FALSE, &View[0][0]);
     GLuint Projection_Matrix = glGetUniformLocation(shader, "Projection");
     glUniformMatrix4fv(Projection_Matrix, 1, GL_FALSE, &Projection[0][0]);
+  
+    if (rotate_on_world)
+    {
+      GLuint Model_Matrix = glGetUniformLocation(shader, "Model");
+    glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &(Model)[0][0]);
+    
+ 
+    }
+    else
+    {
+      glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &(Translation * glm::inverse(Rotation) * Scaling * Model)[0][0]);
+      }
 
     glDrawArrays(GL_TRIANGLES, 0, obj_vertices_count);
 
     //draws duplicate if it should be on screen
     if (duplicate)
     {
+
         glBindVertexArray(vao2);
         glBindTexture(GL_TEXTURE_2D, texture2);
         GLuint Model_Matrix = glGetUniformLocation(shader, "Model");
-        glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &(Translation * glm::inverse(Rotation) * Scaling * translate(Model, obj_x_size, 0, 0))[0][0]);
+        
+
+       
+        if (rotate_on_world)
+        {
+            glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &(glm::translate(Model, glm::vec3(obj_x_size, 0, 0)))[0][0]);
+        }
+        else
+        {
+         glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &(Translation * glm::inverse(Rotation) * Scaling * translate(Model, obj_x_size, 0, 0))[0][0]);
+
+        }
+        // draw second object
 
         glDrawArrays(GL_TRIANGLES, 0, obj_vertices_count2);
     }
@@ -475,6 +520,7 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
                 rotatingLights = true;
             }
         }
+
         if (e.key.keysym.sym == SDLK_r)
         {
             rotating = true;
@@ -494,12 +540,29 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
             translating = false;
             scaling = false;
         }
+        if (e.key.keysym.sym == SDLK_q)
+        {
+            if (rotate_on_world)
+            {
+                Rotation = glm::mat4(1);
+                Translation = glm::mat4(1);
+                Scaling = glm::mat4(1);
+                Model = glm::mat4(1);
+                rotate_on_world = false;
+            }
+            else
+            {
+                rotate_on_world = true;
+            }
+        }
+        // Translation switch
         if (e.key.keysym.sym == SDLK_t)
         {
             translating = true;
             rotating = false;
             scaling = false;
         }
+        // Scaling Switch
         if (e.key.keysym.sym == SDLK_s)
         {
             scaling = true;
@@ -512,16 +575,19 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
             return false;
         }
 
+
         if (e.key.keysym.sym == SDLK_g)
         {
             lightColor1 += glm::vec3(0.5, 0.5, 0.5);
         }
 
+        // Delete duplicate switch
+
         if (e.key.keysym.sym == SDLK_k)
         {
             duplicate = false;
         }
-
+        // Colour Switch
         if (e.key.keysym.sym == SDLK_c)
         {
             if (colour)
@@ -533,6 +599,7 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
                 colour = true;
             }
         }
+
         if (e.key.keysym.sym == SDLK_UP)
         {
             glm::vec3 cameraDirection = glm::normalize(cameraPosition - glm::vec3(0, 0, 0));
@@ -601,6 +668,8 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
         {
             lightSource1 = lightSource1 + glm::vec3(1, 0, 0);
         }
+
+
         if (e.key.keysym.sym == SDLK_l)
         {
 
@@ -611,12 +680,13 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
             Projection = glm::perspective(glm::radians(45.0f), winsizex / winsizey, 0.1f, 100.0f);
 
             View = glm::lookAt(
-                glm::vec3(0, 0, 3), //camera position
-                glm::vec3(0, 0, 0), //camera target
-                glm::vec3(0, 1, 0)  //camera upwards direction
+                glm::vec3(0, 0, 3), // The camera position
+                glm::vec3(0, 0, 0), // The camera target
+                glm::vec3(0, 1, 0)  // The camera upwards direction
             );
 
             Model = glm::mat4(1.0f);
+
             int colorLoc = glGetUniformLocation(shader, "objectColor");
             glUniform3f(colorLoc, 1.0f, 1.0f, 1.0f);
             lightSource1 = glm::vec3(1, 0, 1);
@@ -626,6 +696,7 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
             Rotation = glm::mat4(1);
             Translation = glm::mat4(1);
             Scaling = glm::mat4(1);
+
             duplicate = true;
         }
     }
@@ -646,23 +717,55 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
         float xdiff = x - e.motion.x;
         float ydiff = e.motion.y - y;
 
+        // Translate in the x and y direction
         if (translating)
         {
-            Translation = translate(Translation, xdiff / 1000, ydiff / 1000, 0.0f);
+
+            if (rotate_on_world)
+            {
+                Translation = translate(xdiff / 1000, ydiff / 1000, 0.0f);
+                Model = Translation * Model;
+            }
+            else
+            {
+                Translation = glm::translate(Translation, glm::vec3(xdiff / 1000, ydiff / 1000, 0.0f));
+            }
+
         }
+        // Rotate using mouse in certain directions based on axis
         if (rotating)
         {
 
-            Rotation = rotate(Rotation, axis == 'y' ? xdiff : axis == 'x' ? ydiff
-                                                                          : xdiff + ydiff,
-                              axis == 'x' ? 1 : 0, axis == 'y' ? 1 : 0, axis == 'z' ? 1 : 0);
-        }
+            if (rotate_on_world)
+            {
+                Rotation = rotate(axis == 'y' ? xdiff : axis == 'x' ? ydiff
+                                                                    : xdiff + ydiff,
+                                  axis == 'x' ? 1 : 0, axis == 'y' ? 1 : 0, axis == 'z' ? 1 : 0);
+                Model = Rotation * Model;
+            }
+            else
+            {
+                Rotation = glm::rotate(Rotation, glm::radians(axis == 'y' ? xdiff : axis == 'x' ? ydiff
+                                                                                                : xdiff + ydiff),
+                                       glm::vec3(axis == 'x' ? 1 : 0, axis == 'y' ? 1 : 0, axis == 'z' ? 1 : 0));
+            }
 
+        }
+        //Scale the model
         if (scaling)
         {
 
-            Scaling = scale(Scaling, 1 + ((xdiff + ydiff) / 100));
+            if (rotate_on_world)
+            {
+                Scaling = scale(1 + ((xdiff + ydiff) / 100));
+                Model = Model * Scaling;
+            }
+            else
+            {
+                Scaling = glm::scale(Scaling, glm::vec3(1 + ((xdiff + ydiff) / 100)));
+            }
         }
+        
     }
 
     return true;
@@ -672,5 +775,7 @@ void OpenGLWindow::cleanup()
 {
     glDeleteBuffers(1, &vertexBuffer);
     glDeleteVertexArrays(1, &vao);
+    glDeleteBuffers(1, &vertexBuffer2);
+    glDeleteVertexArrays(1, &vao2);
     SDL_DestroyWindow(sdlWin);
 }

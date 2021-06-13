@@ -25,6 +25,7 @@ private:
     GLuint normalMap;
     GLuint vao;
     GLuint vertexBuffer;
+
     GLuint normalbuffer;
     GLuint tangentbuffer;
     GLuint bitangentbuffer;
@@ -37,6 +38,7 @@ private:
     GLuint vertexBuffer2;
     GLuint tangentbuffer2;
     GLuint bitangentbuffer2;
+
 };
 
 #endif
