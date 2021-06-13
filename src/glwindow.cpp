@@ -428,5 +428,7 @@ void OpenGLWindow::cleanup()
 {
     glDeleteBuffers(1, &vertexBuffer);
     glDeleteVertexArrays(1, &vao);
+    glDeleteBuffers(1, &vertexBuffer2);
+    glDeleteVertexArrays(1, &vao2);
     SDL_DestroyWindow(sdlWin);
 }
