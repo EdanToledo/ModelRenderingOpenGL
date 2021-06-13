@@ -391,17 +391,6 @@ void OpenGLWindow::initGL()
 
     glUniformMatrix4fv(Projection_Matrix, 1, GL_FALSE, &Projection[0][0]);
 
-
-    // Load and bind vertex array object 2
-    glGenVertexArrays(1, &vao2);
-    glBindVertexArray(vao2);
-    // Load the vertex buffer 2 for second obj
-    glGenBuffers(1, &vertexBuffer2);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer2);
-    glBufferData(GL_ARRAY_BUFFER, geo2.vertexCount() * 3 * sizeof(float), geo2.vertexData(), GL_STATIC_DRAW);
-    glVertexAttribPointer(vertexLoc, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-    glEnableVertexAttribArray(vertexLoc);
-
     glPrintError("Setup complete", true);
 }
 //Following methods are essentially just wrappers so i dont have to type glm every time
@@ -451,7 +440,7 @@ void OpenGLWindow::render()
     }
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  
+  GLuint Model_Matrix = glGetUniformLocation(shader, "Model");
   GLuint View_Matrix = glGetUniformLocation(shader, "View");
     glUniformMatrix4fv(View_Matrix, 1, GL_FALSE, &View[0][0]);
     GLuint Projection_Matrix = glGetUniformLocation(shader, "Projection");
@@ -459,7 +448,7 @@ void OpenGLWindow::render()
   
     if (rotate_on_world)
     {
-      GLuint Model_Matrix = glGetUniformLocation(shader, "Model");
+      
     glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &(Model)[0][0]);
     
  
@@ -477,17 +466,15 @@ void OpenGLWindow::render()
 
         glBindVertexArray(vao2);
         glBindTexture(GL_TEXTURE_2D, texture2);
-        GLuint Model_Matrix = glGetUniformLocation(shader, "Model");
         
-
-       
+        
         if (rotate_on_world)
         {
             glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &(glm::translate(Model, glm::vec3(obj_x_size, 0, 0)))[0][0]);
         }
         else
         {
-         glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &(Translation * glm::inverse(Rotation) * Scaling * translate(Model, obj_x_size, 0, 0))[0][0]);
+         glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &(Translation * glm::inverse(Rotation) * Scaling * glm::translate(Model, glm::vec3(obj_x_size, 0, 0)))[0][0]);
 
         }
         // draw second object
@@ -622,7 +609,7 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
         }
         if (e.key.keysym.sym == SDLK_LEFT)
         {
-            glm::vec4 newpos = rotate(glm::mat4(1), -10, 0, 1, 0) * glm::vec4((cameraPosition - glm::vec3(0, 0, 0)) + glm::vec3(0, 0, 0), 1);
+            glm::vec4 newpos = glm::rotate(glm::mat4(1),glm::radians(-10.0f), glm::vec3(0, 1, 0)) * glm::vec4((cameraPosition - glm::vec3(0, 0, 0)) + glm::vec3(0, 0, 0), 1);
             cameraPosition.x = newpos.x;
             cameraPosition.y = newpos.y;
             cameraPosition.z = newpos.z;
@@ -630,7 +617,7 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
         }
         if (e.key.keysym.sym == SDLK_RIGHT)
         {
-            glm::vec4 newpos = rotate(glm::mat4(1), 10, 0, 1, 0) * glm::vec4((cameraPosition - glm::vec3(0, 0, 0)) + glm::vec3(0, 0, 0), 1);
+            glm::vec4 newpos = glm::rotate(glm::mat4(1), glm::radians(10.0f),glm::vec3( 0, 1, 0)) * glm::vec4((cameraPosition - glm::vec3(0, 0, 0)) + glm::vec3(0, 0, 0), 1);
             cameraPosition.x = newpos.x;
             cameraPosition.y = newpos.y;
             cameraPosition.z = newpos.z;
