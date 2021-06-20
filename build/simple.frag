@@ -12,7 +12,7 @@ uniform sampler2D normalMap;
 in vec3 FragPos;  
 in vec3 normal;
 in vec2 TexCoord;
-// in mat3 TBN;
+in mat3 TBN;
 
 out vec4 outColor;
 
@@ -23,16 +23,19 @@ float shininess = 32;
 
 void main()
 {
-//    lightSource1 = TBN*lightSource1;
-//    lightSource2 = TBN*lightSource2;
-//    viewPos = TBN*viewPos;
-//    FragPos = TBN*FragPos;
-//vec3 norm = normalize(texture(normalMap, TexCoord).rgb*2.0-1.0);
-  
+
+   // vec3 normal = texture(normalMap, TexCoord).rgb;
+
+   // normal = normal * 2.0 - 1.0;   
+   // normal = normalize(TBN * normal); 
+
    vec3 norm = normalize(normal);
   
-      vec3 lightDir1 = normalize(lightSource1 - FragPos);  
-    vec3 lightDir2 = normalize(lightSource2 - FragPos);  
+   // vec3 lightDir1 = TBN* normalize(lightSource1 - FragPos);  
+   // vec3 lightDir2 = TBN*normalize(lightSource2 - FragPos);  
+
+   vec3 lightDir1 = normalize(lightSource1 - FragPos);  
+   vec3 lightDir2 = normalize(lightSource2 - FragPos);  
 
     
     float diff1 = max(dot(norm, lightDir1), 0.0);
@@ -43,7 +46,9 @@ void main()
     vec3 ambient1 = ambientStrength * lightColor1;
     vec3 ambient2 = ambientStrength * lightColor2;
 
-    vec3 viewDir = normalize(viewPos - FragPos);
+   //  vec3 viewDir = TBN*normalize(viewPos - FragPos);
+   vec3 viewDir = normalize(viewPos - FragPos);
+   
     vec3 reflectDir1 = reflect(-lightDir1, norm);  
     vec3 reflectDir2 = reflect(-lightDir2, norm);  
     

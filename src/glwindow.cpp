@@ -243,7 +243,19 @@ void OpenGLWindow::initGL()
 
     texture = loadTexture("marble.png");
     texture2 = loadTexture("bricks.jpg");
-    // normalMap = loadTexture("NormalMap.png");
+    normalMap = loadTexture("NormalMap.png");
+    normalMap2 = loadTexture("normal.jpg");
+
+   GLint textureloc = glGetUniformLocation(shader, "textureImage");
+GLint normalLoc = glGetUniformLocation(shader, "normalMap");
+
+
+glUniform1i(textureloc, 0);
+glUniform1i(normalLoc, 2); 
+
+
+
+    
     // The projection matrix
     Projection = glm::perspective(glm::radians(45.0f), winsizex / winsizey, 0.1f, 100.0f);
 
@@ -411,7 +423,11 @@ void OpenGLWindow::render()
 {
 
     glBindVertexArray(vao);
-    glBindTexture(GL_TEXTURE_2D, texture);
+   glActiveTexture(GL_TEXTURE0);
+glBindTexture(GL_TEXTURE_2D, texture);
+
+glActiveTexture(GL_TEXTURE2 );
+glBindTexture(GL_TEXTURE_2D, normalMap);
 
     GLuint lightSourceVector1 = glGetUniformLocation(shader, "lightSource1");
     glUniform3fv(lightSourceVector1, 1, &lightSource1[0]);
@@ -465,7 +481,11 @@ void OpenGLWindow::render()
     {
 
         glBindVertexArray(vao2);
-        glBindTexture(GL_TEXTURE_2D, texture2);
+         glActiveTexture(GL_TEXTURE0);
+glBindTexture(GL_TEXTURE_2D, texture2);
+
+glActiveTexture(GL_TEXTURE2);
+glBindTexture(GL_TEXTURE_2D, normalMap2);
         
         
         if (rotate_on_world)
