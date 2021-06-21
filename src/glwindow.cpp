@@ -26,9 +26,9 @@ glm::mat4 Projection;
 
 glm::vec3 cameraPosition = glm::vec3(0, 0, 3);
 glm::vec3 lightSource1 = glm::vec3(1, 0, 1);
-glm::vec3 lightColor1 = glm::normalize(glm::vec3(64, 224, 208))+glm::vec3(0.2,0.2,0.2);
+glm::vec3 lightColor1 = glm::normalize(glm::vec3(64, 224, 208)) + glm::vec3(0.2, 0.2, 0.2);
 glm::vec3 lightSource2 = glm::vec3(-1, 0, 1);
-glm::vec3 lightColor2 = glm::normalize(glm::vec3(255, 165, 0))+glm::vec3(0.2,0.2,0.2);
+glm::vec3 lightColor2 = glm::normalize(glm::vec3(255, 165, 0)) + glm::vec3(0.2, 0.2, 0.2);
 bool rotatingLights = false;
 bool dragging = false;
 bool rotating = false;
@@ -88,7 +88,7 @@ GLuint loadTexture(char const *path)
         glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT); 
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -236,26 +236,21 @@ void OpenGLWindow::initGL()
     obj_vertices_count = geo.vertexCount();
     obj_x_size = abs(geo.minx) + abs(geo.maxx);
 
-
     GeometryData geo2 = loadOBJFile("objects/suzanne.obj");
     obj_vertices_count2 = geo2.vertexCount();
 
-
     texture = loadTexture("marble.png");
     texture2 = loadTexture("bricks.jpg");
-    normalMap = loadTexture("NormalMap.png");
-    normalMap2 = loadTexture("normal.jpg");
 
-   GLint textureloc = glGetUniformLocation(shader, "textureImage");
-GLint normalLoc = glGetUniformLocation(shader, "normalMap");
+    normalMap = loadTexture("steel.jpg");
+    normalMap2 = loadTexture("swirls.png");
 
+    GLint textureloc = glGetUniformLocation(shader, "textureImage");
+    GLint normalLoc = glGetUniformLocation(shader, "normalMap");
 
-glUniform1i(textureloc, 0);
-glUniform1i(normalLoc, 2); 
+    glUniform1i(textureloc, 0);
+    glUniform1i(normalLoc, 2);
 
-
-
-    
     // The projection matrix
     Projection = glm::perspective(glm::radians(45.0f), winsizex / winsizey, 0.1f, 100.0f);
 
@@ -268,7 +263,6 @@ glUniform1i(normalLoc, 2);
     Model = glm::mat4(1.0f);
 
     int vertexLoc = glGetAttribLocation(shader, "position");
-
 
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
@@ -284,14 +278,14 @@ glUniform1i(normalLoc, 2);
     glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
     glBufferData(GL_ARRAY_BUFFER, geo.vertexCount() * 3 * sizeof(glm::vec3), geo.normalData(), GL_STATIC_DRAW);
 
-    glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,0,nullptr);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glEnableVertexAttribArray(1);
 
     glGenBuffers(1, &texturebuffer);
     glBindBuffer(GL_ARRAY_BUFFER, texturebuffer);
     glBufferData(GL_ARRAY_BUFFER, geo.vertexCount() * 2 * sizeof(glm::vec2), geo.textureCoordData(), GL_STATIC_DRAW);
 
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE,0,nullptr);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
 
     glEnableVertexAttribArray(2);
 
@@ -299,7 +293,7 @@ glUniform1i(normalLoc, 2);
     glBindBuffer(GL_ARRAY_BUFFER, tangentbuffer);
     glBufferData(GL_ARRAY_BUFFER, geo.vertexCount() * 3 * sizeof(glm::vec3), geo.tangentData(), GL_STATIC_DRAW);
 
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, nullptr );
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glEnableVertexAttribArray(3);
 
     glGenBuffers(1, &bitangentbuffer);
@@ -307,7 +301,7 @@ glUniform1i(normalLoc, 2);
     glBufferData(GL_ARRAY_BUFFER, geo.vertexCount() * 3 * sizeof(glm::vec3), geo.bitangentData(), GL_STATIC_DRAW);
 
     glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-    
+
     glEnableVertexAttribArray(4);
 
     //Second object
@@ -321,19 +315,17 @@ glUniform1i(normalLoc, 2);
     glVertexAttribPointer(vertexLoc, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glEnableVertexAttribArray(vertexLoc);
 
-
     glGenBuffers(1, &normalbuffer2);
     glBindBuffer(GL_ARRAY_BUFFER, normalbuffer2);
     glBufferData(GL_ARRAY_BUFFER, geo2.vertexCount() * 3 * sizeof(glm::vec3), geo2.normalData(), GL_STATIC_DRAW);
 
     glVertexAttribPointer(
-        1,        
-        3,       
-        GL_FLOAT, 
-        GL_FALSE, 
-        0,        
-        nullptr
-    );
+        1,
+        3,
+        GL_FLOAT,
+        GL_FALSE,
+        0,
+        nullptr);
     glEnableVertexAttribArray(1);
 
     glGenBuffers(1, &texturebuffer2);
@@ -341,13 +333,12 @@ glUniform1i(normalLoc, 2);
     glBufferData(GL_ARRAY_BUFFER, geo2.vertexCount() * 2 * sizeof(glm::vec2), geo2.textureCoordData(), GL_STATIC_DRAW);
 
     glVertexAttribPointer(
-        2,        
-        2,       
-        GL_FLOAT, 
-        GL_FALSE, 
-        0,       
-        nullptr
-    );
+        2,
+        2,
+        GL_FLOAT,
+        GL_FALSE,
+        0,
+        nullptr);
     glEnableVertexAttribArray(2);
 
     glGenBuffers(1, &tangentbuffer2);
@@ -355,13 +346,12 @@ glUniform1i(normalLoc, 2);
     glBufferData(GL_ARRAY_BUFFER, geo.vertexCount() * 3 * sizeof(glm::vec3), geo.tangentData(), GL_STATIC_DRAW);
 
     glVertexAttribPointer(
-        3,        
-        3,       
-        GL_FLOAT, 
+        3,
+        3,
+        GL_FLOAT,
         GL_FALSE,
-        0,       
-        nullptr
-    );
+        0,
+        nullptr);
     glEnableVertexAttribArray(3);
 
     glGenBuffers(1, &bitangentbuffer2);
@@ -369,16 +359,13 @@ glUniform1i(normalLoc, 2);
     glBufferData(GL_ARRAY_BUFFER, geo.vertexCount() * 3 * sizeof(glm::vec3), geo.bitangentData(), GL_STATIC_DRAW);
 
     glVertexAttribPointer(
-        4,       
-        3,       
-        GL_FLOAT, 
-        GL_FALSE, 
-        0,       
-       nullptr
-    );
+        4,
+        3,
+        GL_FLOAT,
+        GL_FALSE,
+        0,
+        nullptr);
     glEnableVertexAttribArray(4);
-
-  
 
     GLuint lightSourceVector1 = glGetUniformLocation(shader, "lightSource1");
     glUniform3fv(lightSourceVector1, 1, &lightSource1[0]);
@@ -423,11 +410,11 @@ void OpenGLWindow::render()
 {
 
     glBindVertexArray(vao);
-   glActiveTexture(GL_TEXTURE0);
-glBindTexture(GL_TEXTURE_2D, texture);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture);
 
-glActiveTexture(GL_TEXTURE2 );
-glBindTexture(GL_TEXTURE_2D, normalMap);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, normalMap);
 
     GLuint lightSourceVector1 = glGetUniformLocation(shader, "lightSource1");
     glUniform3fv(lightSourceVector1, 1, &lightSource1[0]);
@@ -442,7 +429,6 @@ glBindTexture(GL_TEXTURE_2D, normalMap);
     GLuint cameraPosIndex = glGetUniformLocation(shader, "viewPos");
     glUniform3fv(cameraPosIndex, 1, &cameraPosition[0]);
 
-
     // Check if colour mode is on to change colours
 
     if (colour)
@@ -456,23 +442,21 @@ glBindTexture(GL_TEXTURE_2D, normalMap);
     }
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  GLuint Model_Matrix = glGetUniformLocation(shader, "Model");
-  GLuint View_Matrix = glGetUniformLocation(shader, "View");
+    GLuint Model_Matrix = glGetUniformLocation(shader, "Model");
+    GLuint View_Matrix = glGetUniformLocation(shader, "View");
     glUniformMatrix4fv(View_Matrix, 1, GL_FALSE, &View[0][0]);
     GLuint Projection_Matrix = glGetUniformLocation(shader, "Projection");
     glUniformMatrix4fv(Projection_Matrix, 1, GL_FALSE, &Projection[0][0]);
-  
+
     if (rotate_on_world)
     {
-      
-    glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &(Model)[0][0]);
-    
- 
+
+        glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &(Model)[0][0]);
     }
     else
     {
-      glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &(Translation * glm::inverse(Rotation) * Scaling * Model)[0][0]);
-      }
+        glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &(Translation * glm::inverse(Rotation) * Scaling * Model)[0][0]);
+    }
 
     glDrawArrays(GL_TRIANGLES, 0, obj_vertices_count);
 
@@ -481,21 +465,19 @@ glBindTexture(GL_TEXTURE_2D, normalMap);
     {
 
         glBindVertexArray(vao2);
-         glActiveTexture(GL_TEXTURE0);
-glBindTexture(GL_TEXTURE_2D, texture2);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture2);
 
-glActiveTexture(GL_TEXTURE2);
-glBindTexture(GL_TEXTURE_2D, normalMap2);
-        
-        
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, normalMap2);
+
         if (rotate_on_world)
         {
             glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &(glm::translate(Model, glm::vec3(obj_x_size, 0, 0)))[0][0]);
         }
         else
         {
-         glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &(Translation * glm::inverse(Rotation) * Scaling * glm::translate(Model, glm::vec3(obj_x_size, 0, 0)))[0][0]);
-
+            glUniformMatrix4fv(Model_Matrix, 1, GL_FALSE, &(Translation * glm::inverse(Rotation) * Scaling * glm::translate(Model, glm::vec3(obj_x_size, 0, 0)))[0][0]);
         }
         // draw second object
 
@@ -582,7 +564,6 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
             return false;
         }
 
-
         if (e.key.keysym.sym == SDLK_g)
         {
             lightColor1 += glm::vec3(0.5, 0.5, 0.5);
@@ -629,7 +610,7 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
         }
         if (e.key.keysym.sym == SDLK_LEFT)
         {
-            glm::vec4 newpos = glm::rotate(glm::mat4(1),glm::radians(-10.0f), glm::vec3(0, 1, 0)) * glm::vec4((cameraPosition - glm::vec3(0, 0, 0)) + glm::vec3(0, 0, 0), 1);
+            glm::vec4 newpos = glm::rotate(glm::mat4(1), glm::radians(-10.0f), glm::vec3(0, 1, 0)) * glm::vec4((cameraPosition - glm::vec3(0, 0, 0)) + glm::vec3(0, 0, 0), 1);
             cameraPosition.x = newpos.x;
             cameraPosition.y = newpos.y;
             cameraPosition.z = newpos.z;
@@ -637,7 +618,7 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
         }
         if (e.key.keysym.sym == SDLK_RIGHT)
         {
-            glm::vec4 newpos = glm::rotate(glm::mat4(1), glm::radians(10.0f),glm::vec3( 0, 1, 0)) * glm::vec4((cameraPosition - glm::vec3(0, 0, 0)) + glm::vec3(0, 0, 0), 1);
+            glm::vec4 newpos = glm::rotate(glm::mat4(1), glm::radians(10.0f), glm::vec3(0, 1, 0)) * glm::vec4((cameraPosition - glm::vec3(0, 0, 0)) + glm::vec3(0, 0, 0), 1);
             cameraPosition.x = newpos.x;
             cameraPosition.y = newpos.y;
             cameraPosition.z = newpos.z;
@@ -675,7 +656,6 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
         {
             lightSource1 = lightSource1 + glm::vec3(1, 0, 0);
         }
-
 
         if (e.key.keysym.sym == SDLK_l)
         {
@@ -737,7 +717,6 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
             {
                 Translation = glm::translate(Translation, glm::vec3(xdiff / 1000, ydiff / 1000, 0.0f));
             }
-
         }
         // Rotate using mouse in certain directions based on axis
         if (rotating)
@@ -756,7 +735,6 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
                                                                                                 : xdiff + ydiff),
                                        glm::vec3(axis == 'x' ? 1 : 0, axis == 'y' ? 1 : 0, axis == 'z' ? 1 : 0));
             }
-
         }
         //Scale the model
         if (scaling)
@@ -772,7 +750,6 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
                 Scaling = glm::scale(Scaling, glm::vec3(1 + ((xdiff + ydiff) / 100)));
             }
         }
-        
     }
 
     return true;

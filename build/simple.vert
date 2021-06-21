@@ -25,6 +25,6 @@ void main()
     vec3 T = normalize(vec3(transpose(inverse(Model[gl_InstanceID])) * vec4(inTangent,   0.0)));
    vec3 B = normalize(vec3(transpose(inverse(Model[gl_InstanceID])) * vec4(inBitangent, 0.0)));
    vec3 N = normalize(vec3(transpose(inverse(Model[gl_InstanceID]))* vec4(inNormal,    0.0)));
-    TBN = transpose(mat3(T, B, N));
+    TBN = (mat3(T, B, N));
   
 }
