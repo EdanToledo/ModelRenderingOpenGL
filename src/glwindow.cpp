@@ -26,9 +26,9 @@ glm::mat4 Projection;
 
 glm::vec3 cameraPosition = glm::vec3(0, 0, 3);
 glm::vec3 lightSource1 = glm::vec3(1, 0, 1);
-glm::vec3 lightColor1 = glm::normalize(glm::vec3(64, 224, 208)) + glm::vec3(0.2, 0.2, 0.2);
+glm::vec3 lightcolour1 = glm::normalize(glm::vec3(64, 224, 208)) + glm::vec3(0.2, 0.2, 0.2);
 glm::vec3 lightSource2 = glm::vec3(-1, 0, 1);
-glm::vec3 lightColor2 = glm::normalize(glm::vec3(255, 165, 0)) + glm::vec3(0.2, 0.2, 0.2);
+glm::vec3 lightcolour2 = glm::normalize(glm::vec3(255, 165, 0)) + glm::vec3(0.2, 0.2, 0.2);
 bool rotatingLights = false;
 bool dragging = false;
 bool rotating = false;
@@ -228,8 +228,8 @@ void OpenGLWindow::initGL()
     shader = loadShaderProgram("simple.vert", "simple.frag");
     glUseProgram(shader);
 
-    int colorLoc = glGetUniformLocation(shader, "objectColor");
-    glUniform3f(colorLoc, 1.0f, 1.0f, 1.0f);
+    int colourLoc = glGetUniformLocation(shader, "objectcolour");
+    glUniform3f(colourLoc, 1.0f, 1.0f, 1.0f);
 
     // Load the model that we want to use and buffer the vertex attributes
     GeometryData geo = loadOBJFile("objects/suzanne.obj");
@@ -369,13 +369,13 @@ void OpenGLWindow::initGL()
 
     GLuint lightSourceVector1 = glGetUniformLocation(shader, "lightSource1");
     glUniform3fv(lightSourceVector1, 1, &lightSource1[0]);
-    GLuint lightSourceColor1 = glGetUniformLocation(shader, "lightColor1");
-    glUniform3fv(lightSourceColor1, 1, &lightColor1[0]);
+    GLuint lightSourcecolour1 = glGetUniformLocation(shader, "lightcolour1");
+    glUniform3fv(lightSourcecolour1, 1, &lightcolour1[0]);
 
     GLuint lightSourceVector2 = glGetUniformLocation(shader, "lightSource2");
     glUniform3fv(lightSourceVector2, 1, &lightSource2[0]);
-    GLuint lightSourceColor2 = glGetUniformLocation(shader, "lightColor2");
-    glUniform3fv(lightSourceColor2, 1, &lightColor2[0]);
+    GLuint lightSourcecolour2 = glGetUniformLocation(shader, "lightcolour2");
+    glUniform3fv(lightSourcecolour2, 1, &lightcolour2[0]);
 
     GLuint viewPosID = glGetUniformLocation(shader, "viewPos");
     glUniform3fv(viewPosID, 1, &cameraPosition[0]);
@@ -418,27 +418,37 @@ void OpenGLWindow::render()
 
     GLuint lightSourceVector1 = glGetUniformLocation(shader, "lightSource1");
     glUniform3fv(lightSourceVector1, 1, &lightSource1[0]);
-    GLuint lightSourceColor1 = glGetUniformLocation(shader, "lightColor1");
-    glUniform3fv(lightSourceColor1, 1, &lightColor1[0]);
+    GLuint lightSourcecolour1 = glGetUniformLocation(shader, "lightcolour1");
+    glUniform3fv(lightSourcecolour1, 1, &lightcolour1[0]);
 
     GLuint lightSourceVector2 = glGetUniformLocation(shader, "lightSource2");
     glUniform3fv(lightSourceVector2, 1, &lightSource2[0]);
-    GLuint lightSourceColor2 = glGetUniformLocation(shader, "lightColor2");
-    glUniform3fv(lightSourceColor2, 1, &lightColor2[0]);
+    GLuint lightSourcecolour2 = glGetUniformLocation(shader, "lightcolour2");
+    glUniform3fv(lightSourcecolour2, 1, &lightcolour2[0]);
 
     GLuint cameraPosIndex = glGetUniformLocation(shader, "viewPos");
     glUniform3fv(cameraPosIndex, 1, &cameraPosition[0]);
 
-    // Check if colour mode is on to change colours
+    if (rotatingLights){
+        float posy = sin((float)SDL_GetTicks()/2000);
+        float posx = cos((float)SDL_GetTicks()/2000);
+        
+        lightSource1 = glm::vec3(posx,posy,lightSource1.z);
+        lightSource2 = glm::vec3(posy,posx,lightSource2.z);
+    }
 
+    // Check if colour mode is on to change colours
     if (colour)
     {
-        float red = sin(SDL_GetTicks());
-        float green = cos(SDL_GetTicks());
-        float blue = tan(SDL_GetTicks());
+        
+        float red = sin((float)SDL_GetTicks()/3000);
+        float green = cos((float)SDL_GetTicks()/3000);
+        float blue = tan((float)SDL_GetTicks()/3000);
 
-        int colorLoc = glGetUniformLocation(shader, "objectColor");
-        glUniform3f(colorLoc, red, green, blue);
+        lightcolour1 = glm::normalize(glm::vec3(red, green, blue)) + glm::vec3(0.6, 0.6, 0.6);
+
+        lightcolour2 = glm::normalize(glm::vec3(blue, red, green)) + glm::vec3(0.6, 0.6, 0.6);
+
     }
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -566,7 +576,7 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
 
         if (e.key.keysym.sym == SDLK_g)
         {
-            lightColor1 += glm::vec3(0.5, 0.5, 0.5);
+            lightcolour1 += glm::vec3(0.5, 0.5, 0.5);
         }
 
         // Delete duplicate switch
@@ -674,8 +684,8 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
 
             Model = glm::mat4(1.0f);
 
-            int colorLoc = glGetUniformLocation(shader, "objectColor");
-            glUniform3f(colorLoc, 1.0f, 1.0f, 1.0f);
+            int colourLoc = glGetUniformLocation(shader, "objectcolour");
+            glUniform3f(colourLoc, 1.0f, 1.0f, 1.0f);
             lightSource1 = glm::vec3(1, 0, 1);
             lightSource2 = glm::vec3(-1, 0, 1);
 
