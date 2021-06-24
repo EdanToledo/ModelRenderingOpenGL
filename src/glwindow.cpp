@@ -17,6 +17,7 @@
 #include "geometry.h"
 
 using namespace std;
+//GLOBAL VARIABLES
 glm::mat4 Rotation = glm::mat4(1);
 glm::mat4 Translation = glm::mat4(1);
 glm::mat4 Scaling = glm::mat4(1);
@@ -66,12 +67,13 @@ const char *glGetErrorString(GLenum error)
     }
 }
 
-//Taken from learnopengl.com
+//Modified from and helped by learnOpenGL.com
+// Credit to learnOpenGL.com for function
 GLuint loadTexture(char const *path)
 {
     GLuint textureID;
     glGenTextures(1, &textureID);
-
+    glBindTexture(GL_TEXTURE_2D, textureID);
     int width, height, nrComponents;
     unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
     if (data)
@@ -84,14 +86,9 @@ GLuint loadTexture(char const *path)
         else if (nrComponents == 4)
             format = GL_RGBA;
 
-        glBindTexture(GL_TEXTURE_2D, textureID);
+       
         glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
         stbi_image_free(data);
     }
@@ -231,23 +228,28 @@ void OpenGLWindow::initGL()
     int colourLoc = glGetUniformLocation(shader, "objectcolour");
     glUniform3f(colourLoc, 1.0f, 1.0f, 1.0f);
 
-    // Load the model that we want to use and buffer the vertex attributes
+    // Load the model
     GeometryData geo = loadOBJFile("objects/suzanne.obj");
     obj_vertices_count = geo.vertexCount();
     obj_x_size = abs(geo.minx) + abs(geo.maxx);
-
+    
+    //Load the second model
     GeometryData geo2 = loadOBJFile("objects/suzanne.obj");
     obj_vertices_count2 = geo2.vertexCount();
 
+    //Load the textures
     texture = loadTexture("marble.png");
     texture2 = loadTexture("bricks.jpg");
 
+    //Load the normal maps
     normalMap = loadTexture("steel.jpg");
     normalMap2 = loadTexture("swirls.png");
 
+    //Get location of sampler2d uniforms
     GLint textureloc = glGetUniformLocation(shader, "textureImage");
     GLint normalLoc = glGetUniformLocation(shader, "normalMap");
 
+    //Set texture to texture 0 and normalp map to texture 2
     glUniform1i(textureloc, 0);
     glUniform1i(normalLoc, 2);
 
@@ -261,7 +263,8 @@ void OpenGLWindow::initGL()
     );
     //The model matrix
     Model = glm::mat4(1.0f);
-
+    
+    //The following is filling all buffers of the two objects with their necessary information
     int vertexLoc = glGetAttribLocation(shader, "position");
 
     glGenVertexArrays(1, &vao);
@@ -367,6 +370,7 @@ void OpenGLWindow::initGL()
         nullptr);
     glEnableVertexAttribArray(4);
 
+    //Setting the lightsource positions and colours
     GLuint lightSourceVector1 = glGetUniformLocation(shader, "lightSource1");
     glUniform3fv(lightSourceVector1, 1, &lightSource1[0]);
     GLuint lightSourcecolour1 = glGetUniformLocation(shader, "lightcolour1");
@@ -376,7 +380,7 @@ void OpenGLWindow::initGL()
     glUniform3fv(lightSourceVector2, 1, &lightSource2[0]);
     GLuint lightSourcecolour2 = glGetUniformLocation(shader, "lightcolour2");
     glUniform3fv(lightSourcecolour2, 1, &lightcolour2[0]);
-
+    //Setting the view position
     GLuint viewPosID = glGetUniformLocation(shader, "viewPos");
     glUniform3fv(viewPosID, 1, &cameraPosition[0]);
     //********************
@@ -408,7 +412,7 @@ glm::mat4 scale(float size)
 
 void OpenGLWindow::render()
 {
-
+    //Bind object 1's data before draw call
     glBindVertexArray(vao);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -416,6 +420,7 @@ void OpenGLWindow::render()
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, normalMap);
 
+    // potentiall insert new light colour and position information before draw call
     GLuint lightSourceVector1 = glGetUniformLocation(shader, "lightSource1");
     glUniform3fv(lightSourceVector1, 1, &lightSource1[0]);
     GLuint lightSourcecolour1 = glGetUniformLocation(shader, "lightcolour1");
@@ -429,6 +434,7 @@ void OpenGLWindow::render()
     GLuint cameraPosIndex = glGetUniformLocation(shader, "viewPos");
     glUniform3fv(cameraPosIndex, 1, &cameraPosition[0]);
 
+    // if rotating then move lights
     if (rotatingLights){
         float posy = sin((float)SDL_GetTicks()/2000);
         float posx = cos((float)SDL_GetTicks()/2000);
@@ -457,7 +463,7 @@ void OpenGLWindow::render()
     glUniformMatrix4fv(View_Matrix, 1, GL_FALSE, &View[0][0]);
     GLuint Projection_Matrix = glGetUniformLocation(shader, "Projection");
     glUniformMatrix4fv(Projection_Matrix, 1, GL_FALSE, &Projection[0][0]);
-
+    //Choosing how to rotate
     if (rotate_on_world)
     {
 
@@ -506,6 +512,8 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
     // A list of keycode constants is available here: https://wiki.libsdl.org/SDL_Keycode
     // Note that SDL provides both Scancodes (which correspond to physical positions on the keyboard)
     // and Keycodes (which correspond to symbols on the keyboard, and might differ across layouts)
+    
+    //The following are key controls - see readme for controls
     if (e.type == SDL_KEYDOWN)
     {
         if (e.key.keysym.sym == SDLK_a)

@@ -5,7 +5,7 @@ Controls:
 - Press S to go into scale mode: click and drag to scale.
 - Press L to reset model as well as load second model.
 - Press K to remove duplicate model.
-- Press C to turn on and off rapid changing colour mode.
+- Press C to turn on and off changing light colours.
 - Press Z to make lightsource 1 increase it's position in the y axis
 - Press X to make lightsource 1 decrease it's position in the y axis
 - Press V to make lightsource 1 decrease it's position in the x axis
