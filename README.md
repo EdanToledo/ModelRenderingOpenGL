@@ -1,4 +1,4 @@
-Controls:
+# Controls:
 
 - Press T to go into translation mode: click and drag to translate.
 - Press R to go into rotation mode as well as to switch rotational axis : click and drag to rotate.
@@ -16,7 +16,7 @@ Controls:
 - Press P to make lightsource 2 increase it's position in the x axis
 - Press A to make lights rotate around object.
 - Press Q to turn off world axis rotation and reset position to center. This allows to rotate the object on the spot anywhere.
-
+# Compilation
 Compilation on linux:
 1. Make sure the objects folder is inside the build folder as well as all the texture files.
 2. Make sure the shaders: "simple.vert" and "simple.frag" are in the build folder.
