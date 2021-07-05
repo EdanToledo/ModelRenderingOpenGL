@@ -68,7 +68,7 @@ const char *glGetErrorString(GLenum error)
 }
 
 //Modified from and helped by learnOpenGL.com
-// Credit to learnOpenGL.com for function
+// Credit to learnOpenGL.com for help with function
 GLuint loadTexture(char const *path)
 {
     GLuint textureID;
@@ -79,9 +79,8 @@ GLuint loadTexture(char const *path)
     if (data)
     {
         GLenum format;
-        if (nrComponents == 1)
-            format = GL_RED;
-        else if (nrComponents == 3)
+        
+        if (nrComponents == 3)
             format = GL_RGB;
         else if (nrComponents == 4)
             format = GL_RGBA;
