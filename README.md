@@ -1,5 +1,5 @@
 # Controls:
-
+- Press Arrow keys to orbit camera around origin.
 - Press T to go into translation mode: click and drag to translate.
 - Press R to go into rotation mode as well as to switch rotational axis : click and drag to rotate.
 - Press S to go into scale mode: click and drag to scale.
@@ -23,6 +23,6 @@ Compilation on linux:
 3. Make sure all libraries required are installed namely libsdl2-dev and libglew-dev.
 4. To install these packages type sudo apt-get install <package name> in a terminal window and hit enter. 
 5. Once the packages are installed, open a terminal window and navigate to the project's root directory. 
-6. Use "make" to build your project and "make run" to run it. You should now see a window with a teapot in it.
+6. Use "make" to build your project and "make run" to run it. You should now see a window with the suzanne model in it.
 7. Use controls above to manipulate the obj with the mouse. The default setting doesn't allow manipulation so click a button before trying to do anything
 8. Mouse controls are drag and drop.
